@@ -1,37 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+﻿# Motorlider E-commerce Starter
 
-## Getting Started
+Marketplace base para un e-commerce de repuestos de autos construido con **Next.js 15**, **TypeScript** y **TailwindCSS**. Este proyecto sirve como boilerplate para iterar sobre funcionalidades de catálogo, búsqueda y carrito con un enfoque modular y escalable.
 
-First, run the development server:
+## 🧱 Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Next.js 15 (App Router) + React 19
+- TypeScript con strict: true
+- TailwindCSS 4 + styles/theme.css para paleta y utilidades compartidas
+- Zustand (estado global con persistencia en localStorage)
+- React Query (reservado para futuras integraciones)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## ✨ Funcionalidades Implementadas
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### UI & Estilos
+- Paleta centralizada en src/styles/theme.css con clases .btn y .btn-primary reutilizables.
+- Componentes base (Navbar, SearchBar, CategoryBar, ProductCard, Footer) con tipografía y espaciado consistente.
+- Layouts responsive inspirados en marketplaces (sticky header, barra de categorías, cards con sombras suaves).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Datos y Helpers
+- Mocks tipados en src/data/categories.ts y src/data/products.ts con helpers getProductById, getPriceById y mapas de categorías.
+- Formateo monetario con ormatCurrency (lib/format.ts).
 
-## Learn More
+### Estado Global
+- Store de carrito en src/store/cart.ts con acciones dd, emove, setQty, clear y selectores useCartCount, useCartItems, useCartTotal.
+- Persistencia en localStorage y helpers memorizados para consumo desde UI.
 
-To learn more about Next.js, take a look at the following resources:
+### Componentes Interactivos
+- SearchBar con debounce (300 ms), sincronización con ?q= y filtro client-side por nombre/marca.
+- CategoryBar sincronizada con ?cat= manteniendo cualquier query vigente.
+- ToastProvider + useToast para notificaciones ("Producto agregado").
+- ConfirmDialog accesible para confirmar eliminaciones y vaciado del carrito.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Página de Carrito (/cart)
+- Grid responsive (1 columna mobile / 2 columnas desktop) con cards/tabla modernizadas.
+- Resumen sticky con total, CTA principal y botón de vaciado.
+- Diálogo de confirmación para remover o vaciar productos.
+- Estado vacío coherente con el look & feel de la home.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📁 Estructura Destacada
 
-## Deploy on Vercel
+`
+src/
+├─ app/
+│  ├─ layout.tsx          # Layout raíz con ToastProvider
+│  ├─ page.tsx            # Home con búsqueda y filtros
+│  └─ cart/page.tsx       # Página de carrito
+├─ components/            # Navbar, SearchBar, CategoryBar, ProductCard, Footer, ConfirmDialog, ToastProvider, etc.
+├─ data/                  # Mocks y helpers de productos/categorías
+├─ hooks/                 # useIsClient, useToast
+├─ lib/                   # formatCurrency, constants
+├─ store/                 # Zustand (cart)
+├─ styles/                # theme.css con variables y helpers globales
+└─ types/                 # Tipos compartidos (Product, Category, CartItem)
+`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🚀 Puesta en Marcha
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-"# motorlider" 
+`ash
+npm install
+npm run lint        # chequea el estilo y reglas ESLint
+npm run dev         # levanta el entorno en http://localhost:3000
+`
+
+> Requisitos: Node.js 18+ (Next.js 15).
+
+## ✅ Checklist Manual
+
+- [x] Agregar productos desde las cards → contador de carrito + toast.
+- [x] Cambiar cantidades/total en /cart.
+- [x] Filtrar por texto y categoría usando ?q= y ?cat=.
+- [x] Persistencia del carrito después de recargar.
+- [x] Confirmar antes de eliminar o vaciar el carrito.
+
+## 🔮 Próximos Pasos Sugeridos
+
+1. Conectar API real (React Query) y reemplazar mocks.
+2. Añadir flujo de checkout / autenticación.
+3. Implementar tests (Jest + React Testing Library) para el store y componentes críticos.
+4. Extender el sistema de toast con diferentes variantes (éxito/error).
+
+---
+
+Hecho con 💡 y foco en DX para acelerar la construcción del e-commerce Motorlider.
