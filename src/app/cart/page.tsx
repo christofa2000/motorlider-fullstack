@@ -107,70 +107,103 @@ const CartPage = () => {
   const dialogConfirmLabel =
     pendingAction?.type === "clear" ? "Vaciar" : "Eliminar";
 
+  const cartDescription = "Revisa tus productos antes de finalizar la compra.";
+
+  const CartHeader = () => (
+    <header className="z-30 bg-[var(--color-primary)] text-[var(--color-contrast)] shadow-md lg:sticky lg:top-0">
+      <div className="container flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <h1 className="flex items-center gap-3 py-10 text-2xl font-semibold md:text-3xl">
+          <svg
+            aria-hidden="true"
+            className="h-8 w-8"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M3 4h2l3 12h10l3-8H7"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <circle cx="10" cy="20" r="1" fill="currentColor" />
+            <circle cx="18" cy="20" r="1" fill="currentColor" />
+          </svg>
+          <span>Carrito</span>
+        </h1>
+        <Link
+          href="/"
+          className="btn btn-secondary w-full md:w-auto hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2 focus:ring-offset-[var(--color-primary)]"
+        >
+          Volver al inicio
+        </Link>
+      </div>
+    </header>
+  );
+
   if (!isHydrated) {
     return (
-      <main className="min-h-[60vh] bg-[var(--color-neutral-200)]/30">
-        <div className="container pt-20 pb-10 md:pt-24">
-          <div className="mb-4">
-            <h1 className="text-2xl font-semibold text-[var(--color-primary)] md:text-3xl">
-              Carrito
-            </h1>
-            <p className="mt-1 text-sm text-[var(--color-neutral-700)]">
-              Revisa tus productos antes de finalizar la compra.
-            </p>
+      <>
+        <CartHeader />
+        <main className="min-h-[60vh] bg-[var(--color-neutral-200)]/30">
+          <div className="container pt-20 pb-10 md:pt-24">
+            <div className="mb-4">
+              <p className="py-10 text-sm text-[var(--color-neutral-700)]">
+                {cartDescription}
+              </p>
+            </div>
+            <div className="rounded-xl border border-[var(--color-neutral-200)] bg-white p-8 text-center shadow-sm">
+              <p className="text-sm text-[var(--color-neutral-700)]">
+                Cargando carrito...
+              </p>
+            </div>
           </div>
-          <div className="rounded-xl border border-[var(--color-neutral-200)] bg-white p-8 text-center shadow-sm">
-            <p className="text-sm text-[var(--color-neutral-700)]">
-              Cargando carrito...
-            </p>
-          </div>
-        </div>
-      </main>
+        </main>
+      </>
     );
   }
 
   if (count === 0 || enrichedItems.length === 0) {
     return (
-      <main className="min-h-[60vh] bg-[var(--color-neutral-200)]/30">
-        <div className="container pt-20 pb-10 md:pt-24">
-          <div className="mb-4">
-            <h1 className="text-2xl font-semibold text-[var(--color-primary)] md:text-3xl">
-              Carrito
-            </h1>
-            <p className="mt-1 text-sm text-[var(--color-neutral-700)]">
-              Revisa tus productos antes de finalizar la compra.
-            </p>
+      <>
+        <CartHeader />
+        <main className="min-h-[60vh] bg-[var(--color-neutral-200)]/30">
+          <div className="container pt-20 pb-10 md:pt-24">
+            <div className="mb-4">
+              <p className="py-10 text-sm text-[var(--color-neutral-700)]">
+                {cartDescription}
+              </p>
+            </div>
+            <div className="mx-auto max-w-md rounded-xl border border-[var(--color-neutral-200)] bg-white p-8 text-center shadow-sm">
+              <p className="text-lg font-semibold text-[var(--color-primary)]">
+                Tu carrito esta vacio
+              </p>
+              <p className="mt-2 text-sm text-[var(--color-neutral-700)]">
+                Explora nuestros repuestos y agrega tus favoritos para continuar
+                con la compra.
+              </p>
+              <Link
+                href="/"
+                className="btn btn-primary mt-4 inline-flex hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2 focus:ring-offset-white"
+              >
+                Ver productos
+              </Link>
+            </div>
           </div>
-          <div className="mx-auto max-w-md rounded-xl border border-[var(--color-neutral-200)] bg-white p-8 text-center shadow-sm">
-            <p className="text-lg font-semibold text-[var(--color-primary)]">
-              Tu carrito esta vacio
-            </p>
-            <p className="mt-2 text-sm text-[var(--color-neutral-700)]">
-              Explora nuestros repuestos y agrega tus favoritos para continuar
-              con la compra.
-            </p>
-            <Link
-              href="/"
-              className="btn btn-primary mt-4 inline-flex hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2 focus:ring-offset-white"
-            >
-              Ver productos
-            </Link>
-          </div>
-        </div>
-      </main>
+        </main>
+      </>
     );
   }
 
   return (
     <>
+      <CartHeader />
       <main className="min-h-[60vh] bg-[var(--color-neutral-200)]/30">
         <div className="container pt-20 pb-10 md:pt-24">
           <div className="mb-4">
-            <h1 className="text-2xl font-semibold text-[var(--color-primary)] md:text-3xl">
-              Carrito
-            </h1>
-            <p className="mt-1 text-sm text-[var(--color-neutral-700)]">
-              Revisa tus productos antes de finalizar la compra.
+            <p className="py-10 text-sm text-[var(--color-neutral-700)]">
+              {cartDescription}
             </p>
           </div>
 
@@ -394,3 +427,4 @@ const CartPage = () => {
 };
 
 export default CartPage;
+
