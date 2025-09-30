@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-import { categories } from "../data/categories";
-import useIsClient from "../hooks/useIsClient";
-import { SITE_NAME } from "../lib/constants";
-import { useCartCount } from "../store/cart";
+import { categories } from "@/data/categories";
+import { SITE_NAME } from "@/lib/constants";
+import { useCartCount, useCartIsHydrated } from "@/store/cart";
+import { useIsClient } from "@/hooks/useIsClient";
 
 import SearchBar from "./SearchBar";
 

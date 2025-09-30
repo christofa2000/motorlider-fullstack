@@ -3,7 +3,8 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-import type { CartItem } from "../types";
+import type { CartItem } from "@/types";
+import { getPriceById } from "@/data";
 
 export type { CartItem };
 
@@ -15,16 +16,14 @@ type CartState = {
   setQty: (productId: string, qty: number) => void;
   clear: () => void;
   count: () => number;
-  total: (getPriceById: (id: string) => number) => number;
+  total: () => number;
 };
-
-const isServer = typeof window === "undefined";
 
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
-      isHydrated: isServer,
+      isHydrated: false,
       add: (productId, qty = 1) => {
         if (qty <= 0) {
           return;
@@ -70,7 +69,7 @@ export const useCartStore = create<CartState>()(
       },
       clear: () => set({ items: [] }),
       count: () => get().items.reduce((total, item) => total + item.qty, 0),
-      total: (getPriceById) =>
+      total: () =>
         get().items.reduce(
           (total, item) => total + getPriceById(item.productId) * item.qty,
           0
@@ -78,20 +77,16 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: "motorlider-cart-v1",
+      storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ items: state.items }),
-      storage:
-        typeof window !== "undefined"
-          ? createJSONStorage<{ items: CartItem[] }>(() => window.localStorage)
-          : undefined,
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.isHydrated = true;
+        }
+      },
     }
   )
 );
-
-if (!isServer) {
-  useCartStore.persist.onFinishHydration(() => {
-    useCartStore.setState({ isHydrated: true });
-  });
-}
 
 export const useCartItems = () => useCartStore((state) => state.items);
 export const useCartIsHydrated = () =>
@@ -100,10 +95,4 @@ export const useCartCount = () =>
   useCartStore((state) =>
     state.items.reduce((total, item) => total + item.qty, 0)
   );
-export const useCartTotal = (getPriceById: (id: string) => number) =>
-  useCartStore((state) =>
-    state.items.reduce(
-      (total, item) => total + getPriceById(item.productId) * item.qty,
-      0
-    )
-  );
+export const useCartTotal = () => useCartStore((state) => state.total());

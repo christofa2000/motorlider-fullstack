@@ -1,9 +1,9 @@
 ﻿"use client";
 
-import { formatCurrency } from "../lib/format";
-import { useCartStore } from "../store/cart";
-import type { Product } from "../types";
-import useToast from "../hooks/useToast";
+import { formatCurrency } from "@/lib/format";
+import { useCartStore } from "@/store/cart";
+import type { Product } from "@/types";
+import useToast from "@/hooks/useToast";
 import ProductImage from "./ProductImage";
 
 type ProductCardProps = {

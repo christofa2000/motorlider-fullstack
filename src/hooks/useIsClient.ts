@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from 'react';
 
-export const useIsClient = (): boolean => {
+export function useIsClient() {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -10,6 +10,4 @@ export const useIsClient = (): boolean => {
   }, []);
 
   return isClient;
-};
-
-export default useIsClient;
+}

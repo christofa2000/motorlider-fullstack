@@ -1,8 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
+import ConfirmDialog from "@/components/ConfirmDialog";
+import ProductImage from "@/components/ProductImage";
+import { getProductById } from "@/data";
+import { formatCurrency } from "@/lib/format";
 import {
   useCartCount,
   useCartIsHydrated,
@@ -10,11 +14,7 @@ import {
   useCartStore,
   useCartTotal,
 } from "@/store/cart";
-import ConfirmDialog from "../../components/ConfirmDialog";
-import ProductImage from "../../components/ProductImage";
-import { getPriceById, getProductById } from "../../data/products";
-import { formatCurrency } from "../../lib/format";
-import type { Product } from "../../types";
+import type { Product } from "@/types";
 
 const quantityOptions = Array.from({ length: 10 }, (_, index) => index + 1);
 
@@ -29,10 +29,10 @@ type PendingAction =
   | { type: "clear" };
 
 const CartPage = () => {
-  const storeIsHydrated = useCartIsHydrated();
+  const isHydrated = useCartIsHydrated();
   const items = useCartItems();
   const count = useCartCount();
-  const total = useCartTotal(getPriceById);
+  const total = useCartTotal();
   const removeItem = useCartStore((state) => state.remove);
   const setQty = useCartStore((state) => state.setQty);
   const clearCart = useCartStore((state) => state.clear);
@@ -41,13 +41,6 @@ const CartPage = () => {
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(
     null
   );
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  const isHydrated = isClient && storeIsHydrated;
 
   const enrichedItems = useMemo<CartDisplayItem[]>(
     () =>
