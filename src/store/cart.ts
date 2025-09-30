@@ -31,11 +31,16 @@ export const useCartStore = create<CartState>()(
         }
 
         set((state) => {
-          const index = state.items.findIndex((item) => item.productId === productId);
+          const index = state.items.findIndex(
+            (item) => item.productId === productId
+          );
 
           if (index >= 0) {
             const updated = [...state.items];
-            updated[index] = { ...updated[index], qty: updated[index].qty + qty };
+            updated[index] = {
+              ...updated[index],
+              qty: updated[index].qty + qty,
+            };
             return { items: updated };
           }
 
@@ -76,7 +81,7 @@ export const useCartStore = create<CartState>()(
       partialize: (state) => ({ items: state.items }),
       storage:
         typeof window !== "undefined"
-          ? createJSONStorage<CartState>(() => window.localStorage)
+          ? createJSONStorage<{ items: CartItem[] }>(() => window.localStorage)
           : undefined,
     }
   )
@@ -89,9 +94,12 @@ if (!isServer) {
 }
 
 export const useCartItems = () => useCartStore((state) => state.items);
-export const useCartIsHydrated = () => useCartStore((state) => state.isHydrated);
+export const useCartIsHydrated = () =>
+  useCartStore((state) => state.isHydrated);
 export const useCartCount = () =>
-  useCartStore((state) => state.items.reduce((total, item) => total + item.qty, 0));
+  useCartStore((state) =>
+    state.items.reduce((total, item) => total + item.qty, 0)
+  );
 export const useCartTotal = (getPriceById: (id: string) => number) =>
   useCartStore((state) =>
     state.items.reduce(
