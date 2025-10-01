@@ -32,3 +32,18 @@
 - Jest + React Testing Library.
 - Tests unitarios para componentes críticos.
 - Tests de integración para flujos de compra.
+
+## Backend (Prisma + SQLite/Postgres)
+
+- Usar Prisma como ORM.
+- En dev usar SQLite (`file:./dev.db`), en producción Postgres.
+- Definir schema con modelos `Category` y `Product` con relaciones 1:N.
+- Usar migraciones con `npx prisma migrate dev`.
+- Crear `lib/db.ts` con PrismaClient singleton.
+- Validar datos con Zod antes de persistir (crear/editar).
+- Formato de respuesta API: `{ ok: boolean, data?: any, error?: string }`.
+- Proteger rutas de administración (`/admin/**`) con middleware y token en `.env` o NextAuth credentials.
+- Manejar precios en centavos (int).
+- Proveer scripts: `db:push`, `db:studio`, `db:seed`.
+- No usar `any`. Tipar con `Prisma.Product` y helpers.
+- Seguridad: nunca exponer secretos al cliente, validar siempre inputs, controlar errores.
