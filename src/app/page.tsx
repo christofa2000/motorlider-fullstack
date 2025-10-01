@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 
 import {
@@ -18,7 +18,7 @@ import { products } from "../data/products";
 
 const normalize = (value: string) => value.trim().toLowerCase();
 
-const HomePage = () => {
+const HomePageContent = () => {
   const searchParams = useSearchParams();
   const query = searchParams.get("q") ?? "";
   const categorySlug = searchParams.get("cat") ?? "";
@@ -123,5 +123,11 @@ const HomePage = () => {
     </div>
   );
 };
+
+const HomePage = () => (
+  <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
+    <HomePageContent />
+  </Suspense>
+);
 
 export default HomePage;

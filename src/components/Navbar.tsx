@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 
 import { categories } from "@/data/categories";
 import { SITE_NAME } from "@/lib/constants";
-import { useCartCount, useCartIsHydrated } from "@/store/cart";
+import { useCartCount } from "@/store/cart";
 import { useIsClient } from "@/hooks/useIsClient";
 
 import SearchBar from "./SearchBar";

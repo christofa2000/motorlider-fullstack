@@ -2,6 +2,8 @@
 
 Marketplace base para un e-commerce de repuestos de autos construido con **Next.js 15**, **TypeScript** y **TailwindCSS**. Este proyecto sirve como boilerplate para iterar sobre funcionalidades de catálogo, búsqueda y carrito con un enfoque modular y escalable.
 
+## Captura de pantalla
+
 ![Vista previa de Motorlider](public/images/motorlider.png)
 
 ## 🧱 Tech Stack
@@ -88,5 +90,3 @@ npm run dev         # levanta el entorno en http://localhost:3000
 ---
 
 Hecho con 💡 y foco en DX para acelerar la construcción del e-commerce Motorlider.
-
-## Captura de pantalla
