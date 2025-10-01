@@ -2,6 +2,8 @@
 
 Marketplace base para un e-commerce de repuestos de autos construido con **Next.js 15**, **TypeScript** y **TailwindCSS**. Este proyecto sirve como boilerplate para iterar sobre funcionalidades de catálogo, búsqueda y carrito con un enfoque modular y escalable.
 
+![Vista previa de Motorlider](public/images/motorlider.png)
+
 ## 🧱 Tech Stack
 
 - Next.js 15 (App Router) + React 19
@@ -13,25 +15,31 @@ Marketplace base para un e-commerce de repuestos de autos construido con **Next.
 ## ✨ Funcionalidades Implementadas
 
 ### UI & Estilos
+
 - Paleta centralizada en src/styles/theme.css con clases .btn y .btn-primary reutilizables.
 - Componentes base (Navbar, SearchBar, CategoryBar, ProductCard, Footer) con tipografía y espaciado consistente.
 - Layouts responsive inspirados en marketplaces (sticky header, barra de categorías, cards con sombras suaves).
 
 ### Datos y Helpers
+
 - Mocks tipados en src/data/categories.ts y src/data/products.ts con helpers getProductById, getPriceById y mapas de categorías.
 - Formateo monetario con ormatCurrency (lib/format.ts).
 
 ### Estado Global
-- Store de carrito en src/store/cart.ts con acciones dd, emove, setQty, clear y selectores useCartCount, useCartItems, useCartTotal.
+
+- Store de carrito en src/store/cart.ts con acciones dd,
+  emove, setQty, clear y selectores useCartCount, useCartItems, useCartTotal.
 - Persistencia en localStorage y helpers memorizados para consumo desde UI.
 
 ### Componentes Interactivos
+
 - SearchBar con debounce (300 ms), sincronización con ?q= y filtro client-side por nombre/marca.
 - CategoryBar sincronizada con ?cat= manteniendo cualquier query vigente.
 - ToastProvider + useToast para notificaciones ("Producto agregado").
 - ConfirmDialog accesible para confirmar eliminaciones y vaciado del carrito.
 
 ### Página de Carrito (/cart)
+
 - Grid responsive (1 columna mobile / 2 columnas desktop) con cards/tabla modernizadas.
 - Resumen sticky con total, CTA principal y botón de vaciado.
 - Diálogo de confirmación para remover o vaciar productos.
@@ -39,8 +47,7 @@ Marketplace base para un e-commerce de repuestos de autos construido con **Next.
 
 ## 📁 Estructura Destacada
 
-`
-src/
+`src/
 ├─ app/
 │  ├─ layout.tsx          # Layout raíz con ToastProvider
 │  ├─ page.tsx            # Home con búsqueda y filtros
@@ -51,8 +58,7 @@ src/
 ├─ lib/                   # formatCurrency, constants
 ├─ store/                 # Zustand (cart)
 ├─ styles/                # theme.css con variables y helpers globales
-└─ types/                 # Tipos compartidos (Product, Category, CartItem)
-`
+└─ types/                 # Tipos compartidos (Product, Category, CartItem)`
 
 ## 🚀 Puesta en Marcha
 
@@ -82,3 +88,5 @@ npm run dev         # levanta el entorno en http://localhost:3000
 ---
 
 Hecho con 💡 y foco en DX para acelerar la construcción del e-commerce Motorlider.
+
+## Captura de pantalla
