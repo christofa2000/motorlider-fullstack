@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { prisma } from "@/lib/db";
 import { productUpdateSchema } from "@/lib/validators/product";
 import { Prisma } from "@prisma/client";
 
@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const product = await db.product.findUnique({
+    const product = await prisma.product.findUnique({
       where: { id: params.id },
       include: { category: true },
     });
@@ -52,7 +52,7 @@ export async function PATCH(
 
     const { slug } = parsedBody.data;
     if (slug) {
-      const existingProduct = await db.product.findFirst({
+      const existingProduct = await prisma.product.findFirst({
         where: {
           slug,
           id: { not: params.id },
@@ -67,7 +67,7 @@ export async function PATCH(
       }
     }
 
-    const product = await db.product.update({
+    const product = await prisma.product.update({
       where: { id: params.id },
       data: parsedBody.data,
     });
@@ -99,7 +99,7 @@ export async function DELETE(
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    await db.product.delete({
+    await prisma.product.delete({
       where: { id: params.id },
     });
 

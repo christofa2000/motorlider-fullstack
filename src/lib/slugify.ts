@@ -3,7 +3,7 @@ const MULTIPLE_DASH = /-{2,}/g;
 const EDGE_DASH = /^-+|-+$/g;
 const DIACRITICS = /[\u0300-\u036f]/g;
 
-const slugify = (value: string): string => {
+export const slugify = (value: string): string => {
   return value
     .toLowerCase()
     .normalize("NFKD")
@@ -13,5 +13,3 @@ const slugify = (value: string): string => {
     .replace(EDGE_DASH, "")
     .trim();
 };
-
-export default slugify;

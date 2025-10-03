@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,13 +29,12 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
   });
 
   const watchedName = watch("name");
-  const watchedSlug = watch("slug");
 
-  const generateSlug = () => {
+  useEffect(() => {
     if (watchedName) {
       setValue("slug", slugify(watchedName), { shouldValidate: true });
     }
-  };
+  }, [watchedName, setValue]);
 
   const onSubmit = (data: ProductCreateData) => {
     startTransition(async () => {
@@ -92,7 +91,6 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
             <label htmlFor="slug" className="block text-sm font-medium text-gray-700">Slug</label>
             <div className="flex items-center space-x-2 mt-1">
                 <input id="slug" {...register("slug")} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm" />
-                <button type="button" onClick={generateSlug} className="btn text-sm">Generate</button>
             </div>
             {errors.slug && <p className="mt-1 text-sm text-red-600">{errors.slug.message}</p>}
         </div>

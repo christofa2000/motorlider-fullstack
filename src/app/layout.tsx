@@ -12,10 +12,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="es">
       <head />
-      <body
-        className="min-h-screen bg-cover bg-center font-sans text-gray-900"
-        style={{ backgroundImage: "url('images/fondo12.jpg')" }}
-      >
+      <body className="min-h-screen bg-cover bg-center font-sans text-gray-900">
         <ToastProvider>{children}</ToastProvider>
       </body>
     </html>

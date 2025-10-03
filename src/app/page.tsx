@@ -11,7 +11,7 @@ import { fetchProducts } from "../lib/products";
 const normalize = (value: string) => value.trim().toLowerCase();
 
 type HomePageProps = {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  searchParams?: Record<string, string | string[] | undefined>;
 };
 
 const getHeading = (
@@ -65,7 +65,7 @@ const getEmptyStateDescription = (
 );
 
 const HomePage = async ({ searchParams }: HomePageProps) => {
-  const params = (await searchParams) ?? {};
+  const params = searchParams ?? {};
 
   const getParamValue = (value: string | string[] | undefined): string =>
     Array.isArray(value) ? value[0] ?? "" : value ?? "";
@@ -82,21 +82,6 @@ const HomePage = async ({ searchParams }: HomePageProps) => {
     q: query,
     cat: categorySlug,
     pageSize: 100,
-  });
-
-  const filteredProducts = products.filter((product) => {
-    if (selectedCategoryId && product.categoryId !== selectedCategoryId) {
-      return false;
-    }
-
-    if (!normalizedQuery) {
-      return true;
-    }
-
-    const nameMatch = product.name.toLowerCase().includes(normalizedQuery);
-    const brandMatch =
-      product.brand?.toLowerCase().includes(normalizedQuery) ?? false;
-    return nameMatch || brandMatch;
   });
 
   const hasQuery = normalizedQuery.length > 0;
@@ -126,8 +111,8 @@ const HomePage = async ({ searchParams }: HomePageProps) => {
             </h1>
             {hasQuery || hasCategory ? (
               <p className="text-sm text-slate-600">
-                Encontramos {filteredProducts.length}{" "}
-                {filteredProducts.length === 1 ? "producto" : "productos"} que
+                Encontramos {products.length}{" "}
+                {products.length === 1 ? "producto" : "productos"} que
                 coinciden con tu búsqueda.
               </p>
             ) : (
@@ -137,7 +122,7 @@ const HomePage = async ({ searchParams }: HomePageProps) => {
             )}
           </header>
 
-          {filteredProducts.length === 0 ? (
+          {products.length === 0 ? (
             <div className="rounded-xl border border-[var(--color-neutral-200)] bg-white p-8 text-center shadow-sm">
               {getEmptyStateDescription(query, selectedCategory?.name)}
               <p className="mt-2 text-sm text-[var(--color-neutral-700)]">
@@ -146,7 +131,7 @@ const HomePage = async ({ searchParams }: HomePageProps) => {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
-              {filteredProducts.map((product) => (
+              {products.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>

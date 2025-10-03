@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { prisma } from "@/lib/db";
 import { productCreateSchema } from "@/lib/validators/product";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -39,15 +39,15 @@ export async function GET(req: NextRequest) {
       where.categoryId = cat;
     }
 
-    const [products, total] = await db.$transaction([
-      db.product.findMany({
+    const [products, total] = await prisma.$transaction([
+      prisma.product.findMany({
         where,
         include: { category: true },
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
-      db.product.count({ where }),
+      prisma.product.count({ where }),
     ]);
 
     return NextResponse.json({
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { slug } = parsedBody.data;
-    const existingProduct = await db.product.findUnique({
+    const existingProduct = await prisma.product.findUnique({
       where: { slug },
     });
 
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const product = await db.product.create({
+    const product = await prisma.product.create({
       data: parsedBody.data,
     });
 

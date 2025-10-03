@@ -1,12 +1,11 @@
-
-import { db } from "@/lib/db";
+import { prisma } from "@/lib/db";
 import ProductForm from "../_components/product-form";
 
 export default async function NewProductPage() {
   // Ensure default categories exist
-  const existing = await db.category.findMany();
+  const existing = await prisma.category.findMany();
   if (existing.length === 0) {
-    await db.category.createMany({
+    await prisma.category.createMany({
       data: [
         { name: "Motor", slug: "motor" },
         { name: "Suspensión", slug: "suspension" },
@@ -16,7 +15,7 @@ export default async function NewProductPage() {
     });
   }
 
-  const categories = await db.category.findMany({ orderBy: { name: "asc" } });
+  const categories = await prisma.category.findMany({ orderBy: { name: "asc" } });
 
   return (
     <div className="container mx-auto p-4">
