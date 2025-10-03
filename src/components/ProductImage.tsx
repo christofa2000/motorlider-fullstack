@@ -9,7 +9,7 @@ type ProductImageProps = Omit<ImageProps, "src" | "alt"> & {
   className?: string;
 };
 
-const FALLBACK_SRC = "/images/motorlider.png";
+const FALLBACK_SRC = "/images/fondo.jpg";
 
 const ProductImage = ({ src, alt, className, ...props }: ProductImageProps) => {
   const [currentSrc, setCurrentSrc] = useState(src || FALLBACK_SRC);

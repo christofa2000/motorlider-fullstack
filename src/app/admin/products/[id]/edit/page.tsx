@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import ProductForm from "../../_components/product-form";
 import { notFound } from "next/navigation";
@@ -31,7 +32,7 @@ export default async function EditProductPage({ params }: { params: { id: string
       <div className="max-w-2xl mx-auto">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-bold">Edit Product</h1>
-          <a href="/" className="btn">Back to Home</a>
+          <Link href="/" className="btn">Back to Home</Link>
         </div>
         <div className="rounded-xl border border-[var(--color-neutral-200)] bg-white p-5 shadow-sm">
             <ProductForm categories={categories} product={product} />
