@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { formatCurrency } from "@/lib/format";
 import { useCartStore } from "@/store/cart";
@@ -12,15 +12,15 @@ type ProductCardProps = {
 
 const ProductCard = ({ product }: ProductCardProps) => {
   const addToCart = useCartStore((state) => state.add);
-  const { show } = useToast();
+  const { toast } = useToast();
 
   const handleBuy = () => {
-    addToCart(product.id, 1);
-    show("Producto agregado al carrito");
+    addToCart(product, 1);
+    toast({ title: "Producto agregado al carrito" });
   };
 
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-lg border border-[var(--color-neutral-200)] bg-white transition hover:-translate-y-0.5 hover:border-[var(--color-neutral-700)] hover:shadow-md">
+    <article className="flex h-full flex-col overflow-hidden rounded-lg border border-[var(--color-neutral-200)] bg-white/75 transition hover:-translate-y-0.5 hover:border-[var(--color-neutral-700)] hover:shadow-md">
       <div className="relative aspect-square w-full bg-[var(--color-neutral-200)]">
         <ProductImage
           src={product.image}
@@ -49,3 +49,4 @@ const ProductCard = ({ product }: ProductCardProps) => {
 };
 
 export default ProductCard;
+

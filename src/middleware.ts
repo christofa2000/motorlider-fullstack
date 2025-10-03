@@ -1,39 +1,23 @@
+
 import { NextRequest, NextResponse } from "next/server";
 
-import {
-  ADMIN_DASHBOARD_PATH,
-  ADMIN_LOGIN_PATH,
-  buildAdminUnauthorizedResponse,
-  isAdminAuthenticated,
-} from "@/lib/auth";
+export const config = {
+  matcher: "/admin/:path*",
+};
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const isAdminRoute = pathname.startsWith("/admin");
-  const isAdminLogin = pathname.startsWith(ADMIN_LOGIN_PATH);
-  const isProductsApi = pathname.startsWith("/api/products");
+export function middleware(req: NextRequest) {
+  const adminToken = req.cookies.get("admin_token")?.value;
+  const { pathname } = req.nextUrl;
 
-  if (!isAdminRoute && !isProductsApi) {
-    return NextResponse.next();
+  if (pathname.startsWith("/admin/login") && adminToken === process.env.ADMIN_TOKEN) {
+    return NextResponse.redirect(new URL("/admin/products", req.url));
   }
 
-  const authenticated = isAdminAuthenticated(request);
-
-  if (isAdminRoute && isAdminLogin && authenticated) {
-    return NextResponse.redirect(new URL(ADMIN_DASHBOARD_PATH, request.url));
-  }
-
-  const requiresAuth =
-    (isAdminRoute && !isAdminLogin) ||
-    (isProductsApi && request.method !== "GET");
-
-  if (requiresAuth && !authenticated) {
-    return buildAdminUnauthorizedResponse(request);
+  if (!pathname.startsWith("/admin/login")) {
+    if (adminToken !== process.env.ADMIN_TOKEN) {
+      return NextResponse.redirect(new URL("/admin/login", req.url));
+    }
   }
 
   return NextResponse.next();
 }
-
-export const config = {
-  matcher: ["/admin/:path*", "/api/products/:path*"],
-};

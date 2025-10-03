@@ -1,24 +1,44 @@
-import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { productCreateSchema } from "@/lib/validators/product";
-import { isAdminAuthenticated } from "@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const q = searchParams.get("q");
-  const cat = searchParams.get("cat");
-  const page = parseInt(searchParams.get("page") || "1");
-  const pageSize = parseInt(searchParams.get("pageSize") || "10");
+// Removed invalid import: ProductWhereInput is not exported by @prisma/client
 
-  const where: any = {};
-  if (q) {
-    where.OR = [{ name: { contains: q } }, { brand: { contains: q } }];
-  }
-  if (cat) {
-    where.categoryId = cat;
-  }
+const getProductsSchema = z.object({
+  q: z.string().optional(),
+  cat: z.string().optional(),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).optional().default(10),
+});
 
+export async function GET(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url);
+    const query = Object.fromEntries(searchParams.entries());
+    const parsedQuery = getProductsSchema.safeParse(query);
+
+    if (!parsedQuery.success) {
+      return NextResponse.json(
+        { ok: false, error: parsedQuery.error.format() },
+        { status: 400 }
+      );
+    }
+
+    const { q, cat, page, pageSize } = parsedQuery.data;
+
+    // Use inline type for where filter
+    const where: Record<string, any> = {};
+    if (q) {
+      where.OR = [
+        { name: { contains: q, mode: "insensitive" } },
+        { brand: { contains: q, mode: "insensitive" } },
+      ];
+    }
+    if (cat) {
+      where.categoryId = cat;
+    }
+
     const [products, total] = await db.$transaction([
       db.product.findMany({
         where,
@@ -30,9 +50,15 @@ export async function GET(request: NextRequest) {
       db.product.count({ where }),
     ]);
 
-    return NextResponse.json({ ok: true, data: { products, total } });
+    return NextResponse.json({
+      ok: true,
+      data: products,
+      total,
+      page,
+      pageSize,
+    });
   } catch (error) {
-    console.error(error);
+    console.error("[PRODUCTS_GET]", error);
     return NextResponse.json(
       { ok: false, error: "Internal Server Error" },
       { status: 500 }
@@ -40,37 +66,45 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
-  if (!isAdminAuthenticated(request)) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-  }
-
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json();
-    const data = productCreateSchema.parse(body);
+    const adminToken = req.cookies.get("admin_token")?.value;
+    if (adminToken !== process.env.ADMIN_TOKEN) {
+      return NextResponse.json(
+        { ok: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
 
-    const existingProduct = await db.product.findFirst({
-      where: { slug: data.slug },
+    const body = await req.json();
+    const parsedBody = productCreateSchema.safeParse(body);
+
+    if (!parsedBody.success) {
+      return NextResponse.json(
+        { ok: false, error: parsedBody.error.format() },
+        { status: 400 }
+      );
+    }
+
+    const { slug } = parsedBody.data;
+    const existingProduct = await db.product.findUnique({
+      where: { slug },
     });
 
     if (existingProduct) {
       return NextResponse.json(
-        { ok: false, error: "Slug already exists" },
+        { ok: false, error: "A product with this slug already exists." },
         { status: 409 }
       );
     }
 
-    const product = await db.product.create({ data });
+    const product = await db.product.create({
+      data: parsedBody.data,
+    });
 
     return NextResponse.json({ ok: true, data: product }, { status: 201 });
-  } catch (error: any) {
-    if (error.name === "ZodError") {
-      return NextResponse.json(
-        { ok: false, error: error.errors },
-        { status: 400 }
-      );
-    }
-    console.error(error);
+  } catch (error) {
+    console.error("[PRODUCTS_POST]", error);
     return NextResponse.json(
       { ok: false, error: "Internal Server Error" },
       { status: 500 }

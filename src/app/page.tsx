@@ -1,8 +1,3 @@
-﻿"use client";
-
-import { Suspense, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
-
 import {
   CategoryBar,
   Footer,
@@ -10,70 +5,114 @@ import {
   ProductCard,
   SearchBar,
 } from "../components";
-import {
-  categories,
-  categoryBySlug,
-} from "../data/categories";
-import { products } from "../data/products";
+import { categories, categoryBySlug } from "../data/categories";
+import { fetchProducts } from "../lib/products";
 
 const normalize = (value: string) => value.trim().toLowerCase();
 
-const HomePageContent = () => {
-  const searchParams = useSearchParams();
-  const query = searchParams.get("q") ?? "";
-  const categorySlug = searchParams.get("cat") ?? "";
-  const selectedCategory = categorySlug ? categoryBySlug[categorySlug] : undefined;
+type HomePageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+const getHeading = (
+  query: string,
+  normalizedQuery: string,
+  categorySlug: string
+) => {
+  const selectedCategory = categorySlug
+    ? categoryBySlug[categorySlug]
+    : undefined;
+  const hasQuery = normalizedQuery.length > 0;
+  const hasCategory = Boolean(selectedCategory);
+
+  if (hasQuery && hasCategory && selectedCategory) {
+    return (
+      <>
+        Resultados para <span className="font-medium">&quot;{query}&quot;</span>{" "}
+        en {selectedCategory.name}
+      </>
+    );
+  }
+
+  if (hasQuery) {
+    return (
+      <>
+        Resultados para <span className="font-medium">&quot;{query}&quot;</span>
+      </>
+    );
+  }
+
+  if (hasCategory && selectedCategory) {
+    return `Repuestos de ${selectedCategory.name}`;
+  }
+
+  return "Repuestos destacados";
+};
+
+const getEmptyStateDescription = (
+  query: string,
+  selectedCategoryName?: string
+) => (
+  <p className="text-lg font-semibold text-[var(--color-primary)]">
+    No encontramos resultados para{" "}
+    <span className="font-medium">&quot;{query}&quot;</span>
+    {selectedCategoryName ? (
+      <span> en {selectedCategoryName.toLowerCase()}.</span>
+    ) : (
+      "."
+    )}
+  </p>
+);
+
+const HomePage = async ({ searchParams }: HomePageProps) => {
+  const params = (await searchParams) ?? {};
+
+  const getParamValue = (value: string | string[] | undefined): string =>
+    Array.isArray(value) ? value[0] ?? "" : value ?? "";
+
+  const query = getParamValue(params["q"]);
+  const categorySlug = getParamValue(params["cat"]);
+  const normalizedQuery = normalize(query);
+  const selectedCategory = categorySlug
+    ? categoryBySlug[categorySlug]
+    : undefined;
   const selectedCategoryId = selectedCategory?.id;
 
-  const normalizedQuery = normalize(query);
+  const products = await fetchProducts({
+    q: query,
+    cat: categorySlug,
+    pageSize: 100,
+  });
 
-  const filteredProducts = useMemo(() => {
-    let result = products;
-
-    if (selectedCategoryId) {
-      result = result.filter((product) => product.categoryId === selectedCategoryId);
+  const filteredProducts = products.filter((product) => {
+    if (selectedCategoryId && product.categoryId !== selectedCategoryId) {
+      return false;
     }
 
     if (!normalizedQuery) {
-      return result;
+      return true;
     }
 
-    return result.filter((product) => {
-      const nameMatch = product.name.toLowerCase().includes(normalizedQuery);
-      const brandMatch = product.brand?.toLowerCase().includes(normalizedQuery) ?? false;
-      return nameMatch || brandMatch;
-    });
-  }, [normalizedQuery, selectedCategoryId]);
+    const nameMatch = product.name.toLowerCase().includes(normalizedQuery);
+    const brandMatch =
+      product.brand?.toLowerCase().includes(normalizedQuery) ?? false;
+    return nameMatch || brandMatch;
+  });
 
   const hasQuery = normalizedQuery.length > 0;
   const hasCategory = Boolean(selectedCategoryId);
-
-  const headingText = (() => {
-    if (hasQuery && hasCategory && selectedCategory) {
-      return (
-        <>
-          Resultados para <span className="font-medium">&quot;{query}&quot;</span> en {selectedCategory.name}
-        </>
-      );
-    }
-
-    if (hasQuery) {
-      return (
-        <>
-          Resultados para <span className="font-medium">&quot;{query}&quot;</span>
-        </>
-      );
-    }
-
-    if (hasCategory && selectedCategory) {
-      return `Repuestos de ${selectedCategory.name}`;
-    }
-
-    return "Repuestos destacados";
-  })();
+  const headingText = getHeading(query, normalizedQuery, categorySlug);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div
+      className="min-h-screen"
+      style={{
+        backgroundImage: "url(/images/fondo5.jpg)",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      }}
+    >
       <Navbar />
       <div className="bg-[var(--color-primary)] px-4 pb-3 pt-2 md:hidden">
         <SearchBar className="max-w-none" initialValue={query} />
@@ -82,10 +121,14 @@ const HomePageContent = () => {
       <main className="py-8">
         <section className="container flex flex-col gap-6">
           <header className="space-y-2">
-            <h1 className="text-2xl font-semibold text-slate-900">{headingText}</h1>
+            <h1 className="text-2xl font-semibold text-slate-900">
+              {headingText}
+            </h1>
             {hasQuery || hasCategory ? (
               <p className="text-sm text-slate-600">
-                Encontramos {filteredProducts.length} {filteredProducts.length === 1 ? "producto" : "productos"} que coinciden con tu búsqueda.
+                Encontramos {filteredProducts.length}{" "}
+                {filteredProducts.length === 1 ? "producto" : "productos"} que
+                coinciden con tu búsqueda.
               </p>
             ) : (
               <p className="text-sm text-slate-600">
@@ -96,16 +139,7 @@ const HomePageContent = () => {
 
           {filteredProducts.length === 0 ? (
             <div className="rounded-xl border border-[var(--color-neutral-200)] bg-white p-8 text-center shadow-sm">
-              <p className="text-lg font-semibold text-[var(--color-primary)]">
-                No encontramos resultados para <span className="font-medium">&quot;{query}&quot;</span>
-                {hasCategory && selectedCategory ? (
-                  <span>
-                    {" "}en {selectedCategory.name.toLowerCase()}.
-                  </span>
-                ) : (
-                  "."
-                )}
-              </p>
+              {getEmptyStateDescription(query, selectedCategory?.name)}
               <p className="mt-2 text-sm text-[var(--color-neutral-700)]">
                 Revisa la ortografía o probá con otra búsqueda.
               </p>
@@ -123,11 +157,5 @@ const HomePageContent = () => {
     </div>
   );
 };
-
-const HomePage = () => (
-  <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
-    <HomePageContent />
-  </Suspense>
-);
 
 export default HomePage;

@@ -1,92 +1,206 @@
-ï»¿# Motorlider E-commerce Starter
+# Motorlider E-commerce Starter
 
-Marketplace base para un e-commerce de repuestos de autos construido con **Next.js 15**, **TypeScript** y **TailwindCSS**. Este proyecto sirve como boilerplate para iterar sobre funcionalidades de catÃ¡logo, bÃºsqueda y carrito con un enfoque modular y escalable.
 
-## Captura de pantalla
+
+Marketplace base para un e-commerce de repuestos construido con **Next.js 15**, **TypeScript** y **TailwindCSS**. Esta iteración incorpora persistencia real con Prisma, un panel de administración protegido y endpoints REST listos para integrarse con el storefront existente.
+
+
+
+## Captura
+
+
 
 ![Vista previa de Motorlider](public/images/motorlider.png)
 
-## ðŸ§± Tech Stack
+
+
+## Stack
+
+
 
 - Next.js 15 (App Router) + React 19
-- TypeScript con strict: true
-- TailwindCSS 4 + styles/theme.css para paleta y utilidades compartidas
-- Zustand (estado global con persistencia en localStorage)
-- React Query (reservado para futuras integraciones)
 
-## âœ¨ Funcionalidades Implementadas
+- TypeScript (`strict: true`) + Jest/ts-jest
 
-### UI & Estilos
+- TailwindCSS 4
 
-- Paleta centralizada en src/styles/theme.css con clases .btn y .btn-primary reutilizables.
-- Componentes base (Navbar, SearchBar, CategoryBar, ProductCard, Footer) con tipografÃ­a y espaciado consistente.
-- Layouts responsive inspirados en marketplaces (sticky header, barra de categorÃ­as, cards con sombras suaves).
+- Prisma ORM + SQLite (migrable a Postgres)
 
-### Datos y Helpers
+- Zod para validaciones
 
-- Mocks tipados en src/data/categories.ts y src/data/products.ts con helpers getProductById, getPriceById y mapas de categorÃ­as.
-- Formateo monetario con ormatCurrency (lib/format.ts).
+- Zustand para el carrito
 
-### Estado Global
 
-- Store de carrito en src/store/cart.ts con acciones dd,
-  emove, setQty, clear y selectores useCartCount, useCartItems, useCartTotal.
-- Persistencia en localStorage y helpers memorizados para consumo desde UI.
 
-### Componentes Interactivos
+## Funcionalidades Clave
 
-- SearchBar con debounce (300â€¯ms), sincronizaciÃ³n con ?q= y filtro client-side por nombre/marca.
-- CategoryBar sincronizada con ?cat= manteniendo cualquier query vigente.
-- ToastProvider + useToast para notificaciones ("Producto agregado").
-- ConfirmDialog accesible para confirmar eliminaciones y vaciado del carrito.
 
-### PÃ¡gina de Carrito (/cart)
 
-- Grid responsive (1 columna mobile / 2 columnas desktop) con cards/tabla modernizadas.
-- Resumen sticky con total, CTA principal y botÃ³n de vaciado.
-- DiÃ¡logo de confirmaciÃ³n para remover o vaciar productos.
-- Estado vacÃ­o coherente con el look & feel de la home.
+### Storefront
 
-## ðŸ“ Estructura Destacada
+- Home SSR/SSG consumiendo `/api/products` con fallback automático a mocks si la API falla.
 
-`src/
-â”œâ”€ app/
-â”‚  â”œâ”€ layout.tsx          # Layout raÃ­z con ToastProvider
-â”‚  â”œâ”€ page.tsx            # Home con bÃºsqueda y filtros
-â”‚  â””â”€ cart/page.tsx       # PÃ¡gina de carrito
-â”œâ”€ components/            # Navbar, SearchBar, CategoryBar, ProductCard, Footer, ConfirmDialog, ToastProvider, etc.
-â”œâ”€ data/                  # Mocks y helpers de productos/categorÃ­as
-â”œâ”€ hooks/                 # useIsClient, useToast
-â”œâ”€ lib/                   # formatCurrency, constants
-â”œâ”€ store/                 # Zustand (cart)
-â”œâ”€ styles/                # theme.css con variables y helpers globales
-â””â”€ types/                 # Tipos compartidos (Product, Category, CartItem)`
+- Búsqueda por `?q=` y filtro por categoría `?cat=` desde el servidor.
 
-## ðŸš€ Puesta en Marcha
+- `formatCurrency` normaliza valores en centavos (dos decimales).
 
-`ash
+
+
+### Backend & API
+
+- Modelos `Category` y `Product` en Prisma (`prisma/schema.prisma`).
+
+- CRUD REST bajo `/api/products` con respuestas `{ ok, data?, error? }`.
+
+- Validaciones con Zod (`lib/validators/product.ts`) y manejo explícito de duplicados (409).
+
+- Seed script (`tsx prisma/seed.ts`) con 3 categorias y 12 productos demo ejecutable con `npx prisma db seed`.
+
+
+
+### Panel de Administración
+
+- Middleware (`src/middleware.ts`) que exige un token (`ADMIN_TOKEN`) para `/admin/**` y métodos mutables en `/api/products`.
+
+- Login minimalista en `/admin/login` que guarda cookie httpOnly.
+
+- Listado `/admin/products` con búsqueda, filtros, paginación, edición y borrado con `ConfirmDialog` reutilizado.
+
+- Formularios de creación/edición con validación cliente + toasts reutilizando la paleta existente.
+
+
+
+### Carrito
+
+- El store guarda los productos en una caché interna para cálculos en centavos y se persiste en localStorage (versión `motorlider-cart-v2`).
+
+- Selectores derivados actualizados a la nueva estructura.
+
+
+
+### Tests
+
+- Pruebas de integración para POST/PATCH/DELETE en `test/api/products.test.ts` levantando una base SQLite temporal (Jest + Prisma).
+
+
+
+## Estructura Destacada
+
+
+
+```
+
+src/
+
++- app/
+
+¦  +- api/products/route.ts         # GET + POST
+
+¦  +- api/products/[id]/route.ts    # GET + PATCH + DELETE
+
+¦  +- admin/login/(page|route).tsx  # Login protegido
+
+¦  +- admin/products/               # Listado + formularios
+
+¦  +- cart/page.tsx                 # Carrito actualizado
+
+¦  +- page.tsx                      # Home SSR con fetch a la API
+
++- lib/
+
+¦  +- auth.ts                       # Helpers de autenticación admin
+
+¦  +- db.ts                         # PrismaClient singleton
+
+¦  +- products.ts                   # Fetch SSR + fallback a mocks
+
+¦  +- slugify.ts                    # Normalización de slugs
+
+¦  +- validators/product.ts         # Esquemas Zod
+
++- store/cart.ts                    # Store Zustand v2 (centavos)
+
++- data/                            # Mocks tipados (fallback)
+
++- test/api/products.test.ts        # Pruebas API
+
+```
+
+
+
+## Puesta en Marcha
+
+
+
+```bash
+
 npm install
-npm run lint        # chequea el estilo y reglas ESLint
-npm run dev         # levanta el entorno en http://localhost:3000
-`
 
-> Requisitos: Node.js 18+ (Next.js 15).
+npx prisma migrate dev --name init   # crea la primera migracion en SQLite
 
-## âœ… Checklist Manual
+npx prisma db seed                   # carga categorias y productos demo
 
-- [x] Agregar productos desde las cards â†’ contador de carrito + toast.
-- [x] Cambiar cantidades/total en /cart.
-- [x] Filtrar por texto y categorÃ­a usando ?q= y ?cat=.
-- [x] Persistencia del carrito despuÃ©s de recargar.
-- [x] Confirmar antes de eliminar o vaciar el carrito.
+npm run dev                          # http://localhost:3000
 
-## ðŸ”® PrÃ³ximos Pasos Sugeridos
+```
 
-1. Conectar API real (React Query) y reemplazar mocks.
-2. AÃ±adir flujo de checkout / autenticaciÃ³n.
-3. Implementar tests (Jest + React Testing Library) para el store y componentes crÃ­ticos.
-4. Extender el sistema de toast con diferentes variantes (Ã©xito/error).
+
+
+Scripts útiles:
+
+
+
+- `npx prisma studio` - Prisma Studio.
+
+- `npm run test -- --runTestsByPath test/api/products.test.ts` ? pruebas API.
+
+
+
+## Variables de Entorno
+
+
+
+Crea un `.env` con al menos:
+
+
+
+```
+
+DATABASE_URL="file:./dev.db"
+
+ADMIN_TOKEN="token-super-seguro"
+
+NEXT_PUBLIC_APP_URL="http://localhost:3000"   # opcional pero recomendado para SSR en producción
+
+```
+
+
+
+### Cambiar a Postgres
+
+1. En `prisma/schema.prisma` cambia `provider = "postgresql"` y ajusta `DATABASE_URL`.
+
+2. Ejecuta `npx prisma migrate dev --name init-postgres`.
+
+3. Actualiza `npx prisma db seed` o el contenido de `prisma/seed.ts` con datos compatibles.
+
+
+
+## Notas
+
+
+
+- Los precios se manejan en centavos (enteros) para evitar errores de coma flotante.
+
+- Si la API no responde, `lib/products.ts` devuelve los mocks tipados para no romper el storefront.
+
+- El panel admin exige estar autenticado; usa el token configurado y navega a `/admin/products` para CRUD completo.
+
+
 
 ---
 
-Hecho con ðŸ’¡ y foco en DX para acelerar la construcciÃ³n del e-commerce Motorlider.
+
+
+Construido con foco en DX para acelerar la evolución del e-commerce Motorlider.
+

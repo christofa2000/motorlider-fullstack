@@ -1,4 +1,4 @@
-﻿import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReadonlyURLSearchParams } from "next/navigation";
 import {
   usePathname,

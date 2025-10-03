@@ -5,12 +5,13 @@ import { useMemo, useState } from "react";
 
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ProductImage from "@/components/ProductImage";
-import { getProductById } from "@/data";
 import { formatCurrency } from "@/lib/format";
+import { getMockProductById } from "@/data";
 import {
   useCartCount,
   useCartIsHydrated,
   useCartItems,
+  useCartProducts,
   useCartStore,
   useCartTotal,
 } from "@/store/cart";
@@ -31,6 +32,7 @@ type PendingAction =
 const CartPage = () => {
   const isHydrated = useCartIsHydrated();
   const items = useCartItems();
+  const productsMap = useCartProducts();
   const count = useCartCount();
   const total = useCartTotal();
   const removeItem = useCartStore((state) => state.remove);
@@ -46,7 +48,8 @@ const CartPage = () => {
     () =>
       items
         .map((item) => {
-          const product = getProductById(item.productId);
+          const product =
+            productsMap[item.productId] ?? getMockProductById(item.productId);
 
           if (!product) {
             return null;
@@ -59,7 +62,7 @@ const CartPage = () => {
           };
         })
         .filter((entry): entry is CartDisplayItem => entry !== null),
-    [items]
+    [items, productsMap]
   );
 
   const handleRemoveRequest = (product: Product) => {
@@ -427,4 +430,8 @@ const CartPage = () => {
 };
 
 export default CartPage;
+
+
+
+
 

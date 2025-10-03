@@ -30,9 +30,10 @@ type ApiProduct = Product & {
 
 type ProductsApiResponse = {
   ok: boolean;
-  data?: {
-    items: ApiProduct[];
-  };
+  data?: ApiProduct[];
+  total?: number;
+  page?: number;
+  pageSize?: number;
 };
 
 const buildFallbackProducts = (): ApiProduct[] => {
@@ -41,9 +42,9 @@ const buildFallbackProducts = (): ApiProduct[] => {
   return mockProducts.map((product) => ({
     ...product,
     category: categoryMap.get(product.categoryId) ?? {
-      id: product.categoryId,
-      name: "Sin categor�a",
-      slug: "sin-categoria",
+    id: product.categoryId,
+    name: "Sin categoría",
+    slug: "sin-categoria",
     },
   }));
 };
@@ -78,8 +79,8 @@ export const fetchProducts = cache(
 
       const payload = (await response.json()) as ProductsApiResponse;
 
-      if (response.ok && payload.ok && payload.data) {
-        return payload.data.items;
+      if (response.ok && payload.ok && Array.isArray(payload.data)) {
+        return payload.data;
       }
     } catch (error) {
       console.warn("Falling back to mock products", error);

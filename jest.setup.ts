@@ -1,4 +1,10 @@
-﻿import "@testing-library/jest-dom";
+if (typeof globalThis.setImmediate === "undefined") {
+  (globalThis as unknown as { setImmediate: typeof setImmediate }).setImmediate = (
+    (fn: (...args: unknown[]) => void, ...args: unknown[]) => setTimeout(fn, 0, ...args)
+  ) as unknown as typeof setImmediate;
+}
+
+import "@testing-library/jest-dom";
 import React from "react";
 
 type NextImageProps = {
@@ -18,3 +24,4 @@ jest.mock("next/image", () => {
       })
   };
 });
+

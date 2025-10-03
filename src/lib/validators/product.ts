@@ -6,8 +6,11 @@ export const productCreateSchema = z.object({
   brand: z.string().optional(),
   price: z.number().int().min(0, "Price must be a positive integer"),
   stock: z.number().int().min(0, "Stock must be a positive integer"),
-  image: z.string().url("Image must be a valid URL"),
+  image: z.union([z.string().url(), z.string().startsWith("/images/"), z.literal("")]).default(""),
   categoryId: z.string().min(1, "Category is required"),
 });
 
 export const productUpdateSchema = productCreateSchema.partial();
+
+export type ProductCreateData = z.infer<typeof productCreateSchema>;
+export type ProductUpdateData = z.infer<typeof productUpdateSchema>;

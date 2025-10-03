@@ -1,11 +1,10 @@
-﻿"use client";
+"use client";
 
 import { useToastContext } from "../components/ToastProvider";
 
 export const useToast = () => {
-  const { show } = useToastContext();
-
-  return { show };
+  const { toast } = useToastContext();
+  return { toast };
 };
 
 export default useToast;

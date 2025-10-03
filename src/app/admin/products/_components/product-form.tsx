@@ -1,11 +1,12 @@
+
 "use client";
 
-import { Category, Product } from "@/generated/prisma";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { productCreateSchema, productUpdateSchema } from "@/lib/validators/product";
-import { z } from "zod";
-import { useRouter } from "next/navigation";
+import { Category, Product } from "@prisma/client";
+import { productCreateSchema, ProductCreateData } from "@/lib/validators/product";
 import { useToast } from "@/hooks/useToast";
 import { slugify } from "@/lib/slugify";
 
@@ -14,165 +15,156 @@ interface ProductFormProps {
   categories: Category[];
 }
 
-type ProductFormData = z.infer<typeof productCreateSchema>;
-
-export function ProductForm({ product, categories }: ProductFormProps) {
+export default function ProductForm({ product, categories }: ProductFormProps) {
+  const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const { toast } = useToast();
-  const { register, handleSubmit, control, formState: { errors, isSubmitting }, watch } = useForm<ProductFormData>({
-    resolver: zodResolver(product ? productUpdateSchema : productCreateSchema),
-    defaultValues: product
-      ? { ...product, price: product.price / 100 }
-      : { stock: 0 },
+
+  const { register, handleSubmit, control, formState: { errors }, watch, setValue } = useForm<ProductCreateData>({
+    resolver: zodResolver(productCreateSchema),
+    defaultValues: product ? {
+        ...product,
+        price: product.price / 100, // Convert cents to currency unit
+    } : { stock: 0 },
   });
 
-  const name = watch("name");
+  const watchedName = watch("name");
+  const watchedSlug = watch("slug");
 
-  const onSubmit = async (data: ProductFormData) => {
-    try {
-      const response = await fetch(
-        product ? `/api/products/${product.id}` : "/api/products",
-        {
-          method: product ? "PATCH" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...data, price: Math.round(data.price * 100) }),
-        }
-      );
-
-      const responseData = await response.json();
-
-      if (responseData.ok) {
-        toast({
-          title: "Success",
-          description: `Product ${product ? "updated" : "created"} successfully`,
-        });
-        router.push("/admin/products");
-        router.refresh();
-      } else {
-        toast({ title: "Error", description: responseData.error, variant: "destructive" });
-      }
-    } catch (error) {
-      toast({ title: "Error", description: "An unexpected error occurred", variant: "destructive" });
+  const generateSlug = () => {
+    if (watchedName) {
+      setValue("slug", slugify(watchedName), { shouldValidate: true });
     }
   };
 
+  const onSubmit = (data: ProductCreateData) => {
+    startTransition(async () => {
+      try {
+        const apiPath = product ? `/api/products/${product.id}` : "/api/products";
+        const method = product ? "PATCH" : "POST";
+
+        const payload = {
+            ...data,
+            price: Math.round(data.price * 100), // Convert to cents
+        };
+
+        const res = await fetch(apiPath, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const resData = await res.json();
+
+        if (!res.ok) {
+          throw new Error(resData.error || "Something went wrong");
+        }
+
+        toast({
+          title: "Success!",
+          description: `Product ${product ? "updated" : "created"} successfully.`,
+        });
+        router.push("/admin/products");
+        router.refresh(); // Refetch server-side data
+      } catch (error) {
+        const message = error instanceof Error ? error.message : `Could not ${product ? "update" : "create"} product.`;
+        toast({
+          title: "Error",
+          description: message,
+          variant: "destructive",
+        });
+      }
+    });
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="form-control">
-        <label className="label">
-          <span className="label-text">Name</span>
-        </label>
-        <input
-          {...register("name")}
-          className="input input-bordered w-full focus:ring-[var(--color-accent)]"
-        />
-        {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
-      </div>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Name */}
+        <div>
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
+          <input id="name" {...register("name")} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm" />
+          {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>}
+        </div>
 
-      <div className="form-control">
-        <label className="label">
-          <span className="label-text">Slug</span>
-        </label>
-        <input
-          {...register("slug")}
-          readOnly
-          className="input input-bordered w-full bg-gray-100"
-          value={slugify(name || "")}
-        />
-        {errors.slug && <p className="text-red-500 text-sm mt-1">{errors.slug.message}</p>}
-      </div>
+        {/* Slug */}
+        <div>
+            <label htmlFor="slug" className="block text-sm font-medium text-gray-700">Slug</label>
+            <div className="flex items-center space-x-2 mt-1">
+                <input id="slug" {...register("slug")} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm" />
+                <button type="button" onClick={generateSlug} className="btn text-sm">Generate</button>
+            </div>
+            {errors.slug && <p className="mt-1 text-sm text-red-600">{errors.slug.message}</p>}
+        </div>
 
-      <div className="form-control">
-        <label className="label">
-          <span className="label-text">Brand</span>
-        </label>
-        <input
-          {...register("brand")}
-          className="input input-bordered w-full focus:ring-[var(--color-accent)]"
-        />
-        {errors.brand && <p className="text-red-500 text-sm mt-1">{errors.brand.message}</p>}
-      </div>
+        {/* Brand */}
+        <div>
+          <label htmlFor="brand" className="block text-sm font-medium text-gray-700">Brand</label>
+          <input id="brand" {...register("brand")} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm" />
+          {errors.brand && <p className="mt-1 text-sm text-red-600">{errors.brand.message}</p>}
+        </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">Price (in pesos)</span>
-          </label>
+        {/* Category */}
+        <div>
+          <label htmlFor="categoryId" className="block text-sm font-medium text-gray-700">Category</label>
+          <select id="categoryId" {...register("categoryId")} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm">
+            <option value="">Select a category</option>
+            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          {errors.categoryId && <p className="mt-1 text-sm text-red-600">{errors.categoryId.message}</p>}
+        </div>
+
+        {/* Price */}
+        <div>
+          <label htmlFor="price" className="block text-sm font-medium text-gray-700">Price (in currency unit)</label>
           <Controller
             name="price"
             control={control}
             render={({ field }) => (
-              <input
-                type="number"
-                step="0.01"
-                {...field}
-                onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                className="input input-bordered w-full focus:ring-[var(--color-accent)]"
-              />
+                <input 
+                    id="price" 
+                    type="number" 
+                    {...field} 
+                    onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                    step="0.01"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm" 
+                />
             )}
           />
-          {errors.price && <p className="text-red-500 text-sm mt-1">{errors.price.message}</p>}
+          {errors.price && <p className="mt-1 text-sm text-red-600">{errors.price.message}</p>}
         </div>
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">Stock</span>
-          </label>
-          <Controller
+
+        {/* Stock */}
+        <div>
+          <label htmlFor="stock" className="block text-sm font-medium text-gray-700">Stock</label>
+           <Controller
             name="stock"
             control={control}
             render={({ field }) => (
-              <input
-                type="number"
-                {...field}
-                onChange={(e) => field.onChange(parseInt(e.target.value))}
-                className="input input-bordered w-full focus:ring-[var(--color-accent)]"
-              />
+                <input 
+                    id="stock" 
+                    type="number" 
+                    {...field} 
+                    onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm" 
+                />
             )}
           />
-          {errors.stock && <p className="text-red-500 text-sm mt-1">{errors.stock.message}</p>}
+          {errors.stock && <p className="mt-1 text-sm text-red-600">{errors.stock.message}</p>}
         </div>
       </div>
 
-      <div className="form-control">
-        <label className="label">
-          <span className="label-text">Image URL</span>
-        </label>
-        <input
-          {...register("image")}
-          className="input input-bordered w-full focus:ring-[var(--color-accent)]"
-        />
-        {errors.image && <p className="text-red-500 text-sm mt-1">{errors.image.message}</p>}
-      </div>
+        {/* Image */}
+        <div>
+          <label htmlFor="image" className="block text-sm font-medium text-gray-700">Image URL</label>
+          <input id="image" {...register("image")} placeholder="/images/products/example.jpg" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm" />
+          {errors.image && <p className="mt-1 text-sm text-red-600">{errors.image.message}</p>}
+        </div>
 
-      <div className="form-control">
-        <label className="label">
-          <span className="label-text">Category</span>
-        </label>
-        <select
-          {...register("categoryId")}
-          className="select select-bordered w-full focus:ring-[var(--color-accent)]"
-        >
-          <option value="">Select a category</option>
-          {categories.map((cat) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.name}
-            </option>
-          ))}
-        </select>
-        {errors.categoryId && <p className="text-red-500 text-sm mt-1">{errors.categoryId.message}</p>}
-      </div>
-
-      <div className="flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="btn"
-          disabled={isSubmitting}
-        >
-          Cancel
-        </button>
-        <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-          {isSubmitting ? "Saving..." : "Save"}
+      <div className="flex justify-end space-x-4">
+        <button type="button" onClick={() => router.back()} className="btn">Cancel</button>
+        <button type="submit" disabled={isPending} className="btn btn-primary">
+          {isPending ? (product ? "Updating..." : "Creating...") : (product ? "Update Product" : "Create Product")}
         </button>
       </div>
     </form>

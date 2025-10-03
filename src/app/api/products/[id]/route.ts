@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { productUpdateSchema } from "@/lib/validators/product";
-import { isAdminAuthenticated } from "@/lib/auth";
+import { Prisma } from "@prisma/client";
 
 export async function GET(
-  request: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -14,12 +14,15 @@ export async function GET(
     });
 
     if (!product) {
-      return NextResponse.json({ ok: false, error: "Product not found" }, { status: 404 });
+      return NextResponse.json(
+        { ok: false, error: "Product not found" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json({ ok: true, data: product });
   } catch (error) {
-    console.error(error);
+    console.error("[PRODUCT_GET]", error);
     return NextResponse.json(
       { ok: false, error: "Internal Server Error" },
       { status: 500 }
@@ -28,25 +31,37 @@ export async function GET(
 }
 
 export async function PATCH(
-  request: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  if (!isAdminAuthenticated(request)) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
-    const body = await request.json();
-    const data = productUpdateSchema.parse(body);
+    const adminToken = req.cookies.get("admin_token")?.value;
+    if (adminToken !== process.env.ADMIN_TOKEN) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
 
-    if (data.slug) {
+    const body = await req.json();
+    const parsedBody = productUpdateSchema.safeParse(body);
+
+    if (!parsedBody.success) {
+      return NextResponse.json(
+        { ok: false, error: parsedBody.error.format() },
+        { status: 400 }
+      );
+    }
+
+    const { slug } = parsedBody.data;
+    if (slug) {
       const existingProduct = await db.product.findFirst({
-        where: { slug: data.slug, NOT: { id: params.id } },
+        where: {
+          slug,
+          id: { not: params.id },
+        },
       });
 
       if (existingProduct) {
         return NextResponse.json(
-          { ok: false, error: "Slug already exists" },
+          { ok: false, error: "A product with this slug already exists." },
           { status: 409 }
         );
       }
@@ -54,18 +69,19 @@ export async function PATCH(
 
     const product = await db.product.update({
       where: { id: params.id },
-      data,
+      data: parsedBody.data,
     });
 
     return NextResponse.json({ ok: true, data: product });
-  } catch (error: any) {
-    if (error.name === "ZodError") {
-      return NextResponse.json(
-        { ok: false, error: error.errors },
-        { status: 400 }
-      );
+  } catch (error) {
+    console.error("[PRODUCT_PATCH]", error);
+    // Prisma's P2025 is for record not found on update
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        return NextResponse.json(
+            { ok: false, error: "Product not found" },
+            { status: 404 }
+        );
     }
-    console.error(error);
     return NextResponse.json(
       { ok: false, error: "Internal Server Error" },
       { status: 500 }
@@ -74,21 +90,29 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  if (!isAdminAuthenticated(request)) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
+    const adminToken = req.cookies.get("admin_token")?.value;
+    if (adminToken !== process.env.ADMIN_TOKEN) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     await db.product.delete({
       where: { id: params.id },
     });
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error(error);
+    console.error("[PRODUCT_DELETE]", error);
+    // Prisma's P2025 is for record not found on delete
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        return NextResponse.json(
+            { ok: false, error: "Product not found" },
+            { status: 404 }
+        );
+    }
     return NextResponse.json(
       { ok: false, error: "Internal Server Error" },
       { status: 500 }

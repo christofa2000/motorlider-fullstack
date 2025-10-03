@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Image, { ImageProps } from "next/image";
 import { useState } from "react";
@@ -9,7 +9,7 @@ type ProductImageProps = Omit<ImageProps, "src" | "alt"> & {
   className?: string;
 };
 
-const FALLBACK_SRC = "/images/products/placeholder.png";
+const FALLBACK_SRC = "/images/motorlider.png";
 
 const ProductImage = ({ src, alt, className, ...props }: ProductImageProps) => {
   const [currentSrc, setCurrentSrc] = useState(src || FALLBACK_SRC);

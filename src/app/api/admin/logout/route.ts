@@ -1,0 +1,12 @@
+
+import { NextRequest, NextResponse } from "next/server";
+
+export async function POST(req: NextRequest) {
+  const response = NextResponse.json({ ok: true });
+  response.cookies.set("admin_token", "", {
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 0, // Expire the cookie immediately
+  });
+  return response;
+}

@@ -1,4 +1,4 @@
-﻿import { SITE_NAME, SUPPORT_EMAIL } from "../lib/constants";
+import { SITE_NAME, SUPPORT_EMAIL } from "../lib/constants";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();

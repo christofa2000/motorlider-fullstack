@@ -1,14 +1,15 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 
 import { categories } from "@/data/categories";
+import { useIsClient } from "@/hooks/useIsClient";
 import { SITE_NAME } from "@/lib/constants";
 import { useCartCount } from "@/store/cart";
-import { useIsClient } from "@/hooks/useIsClient";
 
+import AdminLink from "./AdminLink";
 import SearchBar from "./SearchBar";
 
 const iconClasses = "h-5 w-5";
@@ -105,7 +106,9 @@ const Navbar = () => {
             <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-secondary)] text-base font-bold">
               ML
             </span>
-            <span className="hidden text-lg font-semibold sm:inline">{SITE_NAME}</span>
+            <span className="hidden text-lg font-semibold sm:inline">
+              {SITE_NAME}
+            </span>
           </Link>
         </div>
         <div className="hidden flex-1 justify-center md:flex">
@@ -129,11 +132,19 @@ const Navbar = () => {
           >
             <UserIcon />
           </button>
+          <AdminLink />
         </nav>
       </div>
       {isMenuOpen ? (
-        <nav id="mobile-category-menu" aria-label="Categorías" className="md:hidden">
+        <nav
+          id="mobile-category-menu"
+          aria-label="Categorías"
+          className="md:hidden"
+        >
           <ul className="space-y-1 border-t border-[var(--color-neutral-200)] bg-[var(--color-primary)] px-4 py-3">
+            <li className="border-b border-[var(--color-neutral-200)] pb-2 mb-2">
+              <AdminLink />
+            </li>
             {categories.map((category) => (
               <li key={category.id}>
                 <Link

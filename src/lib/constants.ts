@@ -1,4 +1,4 @@
-﻿export const SITE_NAME = "Motorlider";
+export const SITE_NAME = "Motorlider";
 export const DEFAULT_CURRENCY = "ARS";
 export const DEFAULT_LOCALE = "es-AR";
 
