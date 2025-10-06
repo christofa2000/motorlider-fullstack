@@ -1,9 +1,22 @@
-import Link from "next/link";
 import { prisma } from "@/lib/db";
-import ProductForm from "../../_components/product-form";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import ProductForm from "../../_components/product-form";
 
-export default async function EditProductPage({ params }: { params: { id: string } }) {
+interface EditProductPageProps {
+  params: { id: string };
+}
+
+const ALLOWED_CATEGORY_SLUGS = ["motor", "suspension", "frenos"] as const;
+const DEFAULT_CATEGORIES = [
+  { name: "Motor", slug: "motor" },
+  { name: "Suspensión", slug: "suspension" },
+  { name: "Frenos", slug: "frenos" },
+] as const;
+
+export default async function EditProductPage({
+  params,
+}: EditProductPageProps) {
   const product = await prisma.product.findUnique({
     where: { id: params.id },
   });
@@ -12,30 +25,34 @@ export default async function EditProductPage({ params }: { params: { id: string
     notFound();
   }
 
-  // Ensure default categories exist
-  const existing = await prisma.category.findMany();
-  if (existing.length === 0) {
-    await prisma.category.createMany({
-      data: [
-        { name: "Motor", slug: "motor" },
-        { name: "Suspensión", slug: "suspension" },
-        { name: "Frenos", slug: "frenos" },
-      ],
-      skipDuplicates: true,
-    });
-  }
+  // ✅ Seed idempotente sin skipDuplicates (compatible con tu versión de Prisma)
+  await Promise.all(
+    DEFAULT_CATEGORIES.map((c) =>
+      prisma.category.upsert({
+        where: { slug: c.slug },
+        update: {},
+        create: { name: c.name, slug: c.slug },
+      })
+    )
+  );
 
-  const categories = await prisma.category.findMany({ orderBy: { name: "asc" } });
+  // Trae solo categorías permitidas (ordenadas)
+  const categories = await prisma.category.findMany({
+    where: { slug: { in: [...ALLOWED_CATEGORY_SLUGS] } },
+    orderBy: { name: "asc" },
+  });
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="max-w-2xl mx-auto">
+    <div className="container mx-auto p-4 py-10">
+      <div className="mx-auto max-w-2xl">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-bold">Edit Product</h1>
-          <Link href="/" className="btn">Back to Home</Link>
+          <Link href="/admin/products" className="btn">
+            Back to Products
+          </Link>
         </div>
         <div className="rounded-xl border border-[var(--color-neutral-200)] bg-white p-5 shadow-sm">
-            <ProductForm categories={categories} product={product} />
+          <ProductForm categories={categories} product={product} />
         </div>
       </div>
     </div>

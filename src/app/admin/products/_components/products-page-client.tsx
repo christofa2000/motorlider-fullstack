@@ -1,13 +1,12 @@
-
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { Category, Product } from "@prisma/client";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { useToast } from "@/hooks/useToast";
 import { formatCurrency } from "@/lib/format";
-import ConfirmDialog from "@/components/ConfirmDialog";
+import { Category, Product } from "@prisma/client";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
 
 interface ProductWithCategory extends Product {
   category: Category | null;
@@ -17,13 +16,16 @@ interface ProductsPageClientProps {
   categories: Category[];
 }
 
-export default function ProductsPageClient({ categories }: ProductsPageClientProps) {
+export default function ProductsPageClient({
+  categories,
+}: ProductsPageClientProps) {
   const [products, setProducts] = useState<ProductWithCategory[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [productToDelete, setProductToDelete] = useState<ProductWithCategory | null>(null);
+  const [productToDelete, setProductToDelete] =
+    useState<ProductWithCategory | null>(null);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -40,7 +42,11 @@ export default function ProductsPageClient({ categories }: ProductsPageClientPro
           throw new Error("Logout failed");
         }
       } catch (error) {
-        toast({ title: "Error", description: "Could not log out.", variant: "destructive" });
+        toast({
+          title: "Error",
+          description: "Could not log out.",
+          variant: "destructive",
+        });
       }
     });
   };
@@ -63,18 +69,39 @@ export default function ProductsPageClient({ categories }: ProductsPageClientPro
         if (cat) params.set("cat", cat);
 
         const res = await fetch(`/api/products?${params.toString()}`);
-        const { ok, data, total, error } = await res.json();
+        const payload = await res.json();
 
-        if (!ok) {
-          throw new Error(error || "Failed to fetch products");
+        if (!res.ok || !payload?.ok) {
+          const msg =
+            (payload && (payload.error || payload.message)) ||
+            "Failed to fetch products";
+          throw new Error(msg);
         }
 
-        setProducts(data);
-        setTotal(total);
+        // ← soporta ambas formas por si alguna vista quedó vieja
+        const items = Array.isArray(payload?.data?.items)
+          ? payload.data.items
+          : Array.isArray(payload?.data)
+          ? payload.data
+          : [];
+
+        const totalFromApi =
+          typeof payload?.data?.total === "number"
+            ? payload.data.total
+            : typeof payload?.total === "number"
+            ? payload.total
+            : items.length;
+
+        setProducts(items);
+        setTotal(totalFromApi);
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Unknown error";
+        const message =
+          error instanceof Error ? error.message : "Unknown error";
         setError(message);
         toast({ title: "Error", description: message, variant: "destructive" });
+        // fallback seguro para no romper el render
+        setProducts([]);
+        setTotal(0);
       } finally {
         setIsLoading(false);
       }
@@ -103,11 +130,18 @@ export default function ProductsPageClient({ categories }: ProductsPageClientPro
           throw new Error("Failed to delete product");
         }
 
-        toast({ title: "Success", description: "Product deleted successfully." });
-        setProducts(products.filter(p => p.id !== productToDelete.id));
+        toast({
+          title: "Success",
+          description: "Product deleted successfully.",
+        });
+        setProducts(products.filter((p) => p.id !== productToDelete.id));
         setTotal(total - 1);
       } catch (error) {
-        toast({ title: "Error", description: "Could not delete product.", variant: "destructive" });
+        toast({
+          title: "Error",
+          description: "Could not delete product.",
+          variant: "destructive",
+        });
       } finally {
         setProductToDelete(null);
       }
@@ -125,7 +159,10 @@ export default function ProductsPageClient({ categories }: ProductsPageClientPro
       return (
         <div className="text-center text-red-500">
           <p>Error: {error}</p>
-          <button onClick={() => window.location.reload()} className="btn btn-primary mt-2">
+          <button
+            onClick={() => window.location.reload()}
+            className="btn btn-primary mt-2"
+          >
             Retry
           </button>
         </div>
@@ -149,25 +186,49 @@ export default function ProductsPageClient({ categories }: ProductsPageClientPro
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Price</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Stock</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Category</th>
-                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Price
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Stock
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Category
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 bg-white">
               {products.map((product) => (
                 <tr key={product.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">{product.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{formatCurrency(product.price / 100)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{product.stock}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{product.category?.name ?? 'Sin categoría'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {product.name}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {formatCurrency(product.price / 100)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {product.stock}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {product.category?.name ?? "Sin categoría"}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <Link href={`/admin/products/${product.id}/edit`} className="text-indigo-600 hover:text-indigo-900">
+                    <Link
+                      href={`/admin/products/${product.id}/edit`}
+                      className="text-indigo-600 hover:text-indigo-900"
+                    >
                       Edit
                     </Link>
-                    <button onClick={() => setProductToDelete(product)} className="ml-4 text-red-600 hover:text-red-900">
+                    <button
+                      onClick={() => setProductToDelete(product)}
+                      className="ml-4 text-red-600 hover:text-red-900"
+                    >
                       Delete
                     </button>
                   </td>
@@ -179,23 +240,36 @@ export default function ProductsPageClient({ categories }: ProductsPageClientPro
 
         <div className="mt-4 flex items-center justify-between">
           <p className="text-sm text-gray-700">
-              Showing <span className="font-medium">{(page - 1) * pageSize + 1}</span> to <span className="font-medium">{Math.min(page * pageSize, total)}</span> of <span className="font-medium">{total}</span> results
+            Showing{" "}
+            <span className="font-medium">{(page - 1) * pageSize + 1}</span> to{" "}
+            <span className="font-medium">
+              {Math.min(page * pageSize, total)}
+            </span>{" "}
+            of <span className="font-medium">{total}</span> results
           </p>
           <div className="flex space-x-2">
-              <button
-                  onClick={() => router.push(`/admin/products?page=${page - 1}&q=${q}&cat=${cat}`)}
-                  disabled={page <= 1}
-                  className="btn"
-              >
-                  Previous
-              </button>
-              <button
-                  onClick={() => router.push(`/admin/products?page=${page + 1}&q=${q}&cat=${cat}`)}
-                  disabled={page >= totalPages}
-                  className="btn"
-              >
-                  Next
-              </button>
+            <button
+              onClick={() =>
+                router.push(
+                  `/admin/products?page=${page - 1}&q=${q}&cat=${cat}`
+                )
+              }
+              disabled={page <= 1}
+              className="btn"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() =>
+                router.push(
+                  `/admin/products?page=${page + 1}&q=${q}&cat=${cat}`
+                )
+              }
+              disabled={page >= totalPages}
+              className="btn"
+            >
+              Next
+            </button>
           </div>
         </div>
       </>
@@ -207,35 +281,43 @@ export default function ProductsPageClient({ categories }: ProductsPageClientPro
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Products (Admin)</h1>
         <div className="flex items-center gap-4">
-          <Link href="/" className="btn">Back to Home</Link>
+          <Link href="/" className="btn">
+            Back to Home
+          </Link>
           <Link href="/admin/products/new" className="btn btn-primary">
             New Product
           </Link>
-          <button onClick={handleLogout} disabled={isPending} className="btn btn-secondary">
-            {isPending ? 'Logging out...' : 'Log Out'}
+          <button
+            onClick={handleLogout}
+            disabled={isPending}
+            className="btn btn-secondary"
+          >
+            {isPending ? "Logging out..." : "Log Out"}
           </button>
         </div>
       </div>
 
       <div className="rounded-xl border border-[var(--color-neutral-200)] bg-white p-5 shadow-sm">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 mb-4">
-            <input
-              type="text"
-              placeholder="Search by name or brand..."
-              defaultValue={q}
-              onChange={(e) => handleFilterChange({ q: e.target.value })}
-              className="rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm"
-            />
-            <select
-              value={cat}
-              onChange={(e) => handleFilterChange({ cat: e.target.value })}
-              className="rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm"
-            >
-              <option value="">All Categories</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+          <input
+            type="text"
+            placeholder="Search by name or brand..."
+            defaultValue={q}
+            onChange={(e) => handleFilterChange({ q: e.target.value })}
+            className="rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm"
+          />
+          <select
+            value={cat}
+            onChange={(e) => handleFilterChange({ cat: e.target.value })}
+            className="rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm"
+          >
+            <option value="">All Categories</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         {renderContent()}

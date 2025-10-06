@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { productCreateSchema } from "@/lib/validators/product";
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -27,8 +28,7 @@ export async function GET(req: NextRequest) {
 
     const { q, cat, page, pageSize } = parsedQuery.data;
 
-    // Use inline type for where filter
-    const where: Record<string, any> = {};
+    const where: Prisma.ProductWhereInput = {};
     if (q) {
       where.OR = [
         { name: { contains: q, mode: "insensitive" } },
@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
       ];
     }
     if (cat) {
+      // cat debe ser el categoryId (string). Si mandaras slug, habría que joinear.
       where.categoryId = cat;
     }
 
@@ -50,12 +51,15 @@ export async function GET(req: NextRequest) {
       prisma.product.count({ where }),
     ]);
 
+    // 🔧 forma compatible con el cliente
     return NextResponse.json({
       ok: true,
-      data: products,
-      total,
-      page,
-      pageSize,
+      data: {
+        items: products,
+        total,
+        page,
+        pageSize,
+      },
     });
   } catch (error) {
     console.error("[PRODUCTS_GET]", error);
