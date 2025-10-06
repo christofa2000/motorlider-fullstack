@@ -29,6 +29,7 @@ export default function LoginForm() {
         toast({ title: "Login failed", description: error, variant: "destructive" });
       }
     } catch (error) {
+      console.error("[ADMIN_LOGIN]", error);
       toast({ title: "An error occurred", description: "Please try again.", variant: "destructive" });
     } finally {
       setIsLoading(false);

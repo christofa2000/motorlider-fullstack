@@ -42,6 +42,7 @@ export default function ProductsPageClient({
           throw new Error("Logout failed");
         }
       } catch (error) {
+        console.error("[ADMIN_LOGOUT]", error);
         toast({
           title: "Error",
           description: "Could not log out.",
@@ -71,19 +72,11 @@ export default function ProductsPageClient({
         const res = await fetch(`/api/products?${params.toString()}`);
         const payload = await res.json();
 
-        if (!res.ok || !payload?.ok) {
-          const msg =
-            (payload && (payload.error || payload.message)) ||
-            "Failed to fetch products";
-          throw new Error(msg);
-        }
-
-        // ← soporta ambas formas por si alguna vista quedó vieja
-        const items = Array.isArray(payload?.data?.items)
+        const items = (Array.isArray(payload?.data?.items)
           ? payload.data.items
           : Array.isArray(payload?.data)
           ? payload.data
-          : [];
+          : []) as ProductWithCategory[];
 
         const totalFromApi =
           typeof payload?.data?.total === "number"
@@ -91,6 +84,13 @@ export default function ProductsPageClient({
             : typeof payload?.total === "number"
             ? payload.total
             : items.length;
+
+        if (!res.ok || !payload?.ok) {
+          const msg =
+            (payload && (payload.error || payload.message)) ||
+            "Failed to fetch products";
+          throw new Error(msg);
+        }
 
         setProducts(items);
         setTotal(totalFromApi);
@@ -137,6 +137,7 @@ export default function ProductsPageClient({
         setProducts(products.filter((p) => p.id !== productToDelete.id));
         setTotal(total - 1);
       } catch (error) {
+        console.error("[ADMIN_PRODUCT_DELETE]", error);
         toast({
           title: "Error",
           description: "Could not delete product.",
@@ -204,36 +205,37 @@ export default function ProductsPageClient({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 bg-white">
-              {products.map((product) => (
-                <tr key={product.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {product.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {formatCurrency(product.price / 100)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {product.stock}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {product.category?.name ?? "Sin categoría"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <Link
-                      href={`/admin/products/${product.id}/edit`}
-                      className="text-indigo-600 hover:text-indigo-900"
-                    >
-                      Edit
-                    </Link>
-                    <button
-                      onClick={() => setProductToDelete(product)}
-                      className="ml-4 text-red-600 hover:text-red-900"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {Array.isArray(products) &&
+                products.map((product) => (
+                  <tr key={product.id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {product.name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {formatCurrency(product.price / 100)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {product.stock}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {product.category?.name ?? "Sin categoria"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <Link
+                        href={`/admin/products/${product.id}/edit`}
+                        className="text-indigo-600 hover:text-indigo-900"
+                      >
+                        Edit
+                      </Link>
+                      <button
+                        onClick={() => setProductToDelete(product)}
+                        className="ml-4 text-red-600 hover:text-red-900"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
@@ -325,16 +327,17 @@ export default function ProductsPageClient({
 
       {productToDelete && (
         <ConfirmDialog
-          isOpen={!!productToDelete}
-          onClose={() => setProductToDelete(null)}
+          open={!!productToDelete}
+          onCancel={() => setProductToDelete(null)}
           onConfirm={handleDelete}
           title="Delete Product"
           description={`Are you sure you want to delete "${productToDelete.name}"? This action cannot be undone.`}
-          confirmText="Delete"
-          isDestructive
-          isLoading={isPending}
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
         />
       )}
+
     </div>
   );
 }
+

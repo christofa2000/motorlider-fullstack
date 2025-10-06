@@ -24,8 +24,7 @@ type ToastContextValue = {
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
 const generateId = (): string => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    // @ts-expect-error - types vary across runtimes
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
   }
 
@@ -106,11 +105,11 @@ const ToastProvider = ({ children }: ToastProviderProps) => {
               </div>
               <button
                 type="button"
-                aria-label="Cerrar notificación"
+                aria-label="Cerrar notificacion"
                 className="ml-2 rounded p-1 text-current/80 transition hover:bg-black/10 hover:text-current"
                 onClick={() => removeToast(t.id)}
               >
-                ×
+                {"\u00D7"}
               </button>
             </div>
           </div>

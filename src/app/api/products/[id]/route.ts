@@ -5,11 +5,12 @@ import { Prisma } from "@prisma/client";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const product = await prisma.product.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { category: true },
     });
 
@@ -32,9 +33,10 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const adminToken = req.cookies.get("admin_token")?.value;
     if (adminToken !== process.env.ADMIN_TOKEN) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
@@ -55,7 +57,7 @@ export async function PATCH(
       const existingProduct = await prisma.product.findFirst({
         where: {
           slug,
-          id: { not: params.id },
+          id: { not: id },
         },
       });
 
@@ -68,7 +70,7 @@ export async function PATCH(
     }
 
     const product = await prisma.product.update({
-      where: { id: params.id },
+      where: { id },
       data: parsedBody.data,
     });
 
@@ -91,16 +93,17 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const adminToken = req.cookies.get("admin_token")?.value;
     if (adminToken !== process.env.ADMIN_TOKEN) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
     await prisma.product.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ ok: true });

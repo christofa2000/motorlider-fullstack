@@ -1,42 +1,26 @@
 import { prisma } from "@/lib/db";
+import { ensureDefaultCategories } from "@/lib/ensureDefaultCategories";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ProductForm from "../../_components/product-form";
 
-interface EditProductPageProps {
-  params: { id: string };
-}
-
 const ALLOWED_CATEGORY_SLUGS = ["motor", "suspension", "frenos"] as const;
-const DEFAULT_CATEGORIES = [
-  { name: "Motor", slug: "motor" },
-  { name: "Suspensión", slug: "suspension" },
-  { name: "Frenos", slug: "frenos" },
-] as const;
 
-export default async function EditProductPage({
+async function EditProductPage({
   params,
-}: EditProductPageProps) {
+}: { params: { id: string } | Promise<{ id: string }> }) {
+  const { id } = params instanceof Promise ? await params : params;
+
   const product = await prisma.product.findUnique({
-    where: { id: params.id },
+    where: { id },
   });
 
   if (!product) {
     notFound();
   }
 
-  // ✅ Seed idempotente sin skipDuplicates (compatible con tu versión de Prisma)
-  await Promise.all(
-    DEFAULT_CATEGORIES.map((c) =>
-      prisma.category.upsert({
-        where: { slug: c.slug },
-        update: {},
-        create: { name: c.name, slug: c.slug },
-      })
-    )
-  );
+  await ensureDefaultCategories();
 
-  // Trae solo categorías permitidas (ordenadas)
   const categories = await prisma.category.findMany({
     where: { slug: { in: [...ALLOWED_CATEGORY_SLUGS] } },
     orderBy: { name: "asc" },
@@ -58,3 +42,6 @@ export default async function EditProductPage({
     </div>
   );
 }
+
+export default EditProductPage as unknown as (props: { params: Promise<{ id: string }> }) => ReturnType<typeof EditProductPage>;
+

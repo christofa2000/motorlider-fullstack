@@ -11,7 +11,9 @@ import { fetchProducts } from "../lib/products";
 const normalize = (value: string) => value.trim().toLowerCase();
 
 type HomePageProps = {
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams?:
+    | Record<string, string | string[] | undefined>
+    | Promise<Record<string, string | string[] | undefined>>;
 };
 
 const getHeading = (
@@ -65,7 +67,12 @@ const getEmptyStateDescription = (
 );
 
 const HomePage = async ({ searchParams }: HomePageProps) => {
-  const params = searchParams ?? {};
+  const resolvedSearchParams =
+    searchParams instanceof Promise
+      ? await searchParams
+      : searchParams ?? {};
+
+  const params = resolvedSearchParams;
 
   const getParamValue = (value: string | string[] | undefined): string =>
     Array.isArray(value) ? value[0] ?? "" : value ?? "";
@@ -113,11 +120,11 @@ const HomePage = async ({ searchParams }: HomePageProps) => {
               <p className="text-sm text-slate-600">
                 Encontramos {products.length}{" "}
                 {products.length === 1 ? "producto" : "productos"} que
-                coinciden con tu búsqueda.
+                coinciden con tu busqueda.
               </p>
             ) : (
               <p className="text-sm text-slate-600">
-                Descubrí los repuestos más buscados por nuestros clientes.
+                Descubri los repuestos mas buscados por nuestros clientes.
               </p>
             )}
           </header>
@@ -126,13 +133,13 @@ const HomePage = async ({ searchParams }: HomePageProps) => {
             <div className="rounded-xl border border-[var(--color-neutral-200)] bg-white p-8 text-center shadow-sm">
               {getEmptyStateDescription(query, selectedCategory?.name)}
               <p className="mt-2 text-sm text-[var(--color-neutral-700)]">
-                Revisa la ortografía o probá con otra búsqueda.
+                Revisa la ortografia o proba con otra busqueda.
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
-              {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
+              {products.map((product, index) => (
+                <ProductCard key={product.id} product={product} priority={index === 0} />
               ))}
             </div>
           )}
@@ -143,4 +150,4 @@ const HomePage = async ({ searchParams }: HomePageProps) => {
   );
 };
 
-export default HomePage;
+export default HomePage as unknown as (props: { searchParams?: Promise<Record<string, string | string[]>> }) => ReturnType<typeof HomePage>;

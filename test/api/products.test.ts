@@ -8,7 +8,7 @@ jest.mock("next/server", () => ({
   NextRequest: class {},
 }));
 
-import { PrismaClient } from "@/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import fs from "node:fs";
 import path from "node:path";
 

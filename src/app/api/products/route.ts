@@ -31,12 +31,12 @@ export async function GET(req: NextRequest) {
     const where: Prisma.ProductWhereInput = {};
     if (q) {
       where.OR = [
-        { name: { contains: q, mode: "insensitive" } },
-        { brand: { contains: q, mode: "insensitive" } },
+        { name: { contains: q } },
+        { brand: { contains: q } },
       ];
     }
     if (cat) {
-      // cat debe ser el categoryId (string). Si mandaras slug, habría que joinear.
+      // cat debe ser el categoryId (string). Si mandas slug, hay que hacer join.
       where.categoryId = cat;
     }
 
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
       prisma.product.count({ where }),
     ]);
 
-    // 🔧 forma compatible con el cliente
+    // Forma compatible con el cliente
     return NextResponse.json({
       ok: true,
       data: {

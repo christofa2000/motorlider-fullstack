@@ -1,6 +1,5 @@
 "use client";
 
-import { getMockProductById } from "@/data";
 import type { Product } from "@/types";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -59,7 +58,8 @@ export const useCartStore = create<CartState>()(
       },
       remove: (productId) => {
         set((state) => {
-          const { [productId]: _removed, ...restProducts } = state.products;
+          const restProducts = { ...state.products };
+          delete restProducts[productId];
           return {
             items: state.items.filter((item) => item.productId !== productId),
             products: restProducts,
@@ -69,7 +69,8 @@ export const useCartStore = create<CartState>()(
       setQty: (productId, qty) => {
         if (qty <= 0) {
           set((state) => {
-            const { [productId]: _removed, ...restProducts } = state.products;
+            const restProducts = { ...state.products };
+            delete restProducts[productId];
             return {
               items: state.items.filter((item) => item.productId !== productId),
               products: restProducts,
@@ -121,8 +122,3 @@ export const useCartCount = () =>
     state.items.reduce((total, item) => total + item.qty, 0)
   );
 export const useCartTotal = () => useCartStore((state) => state.total());
-
-
-
-
-

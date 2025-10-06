@@ -8,9 +8,10 @@ import ProductImage from "./ProductImage";
 
 type ProductCardProps = {
   product: Product;
+  priority?: boolean;
 };
 
-const ProductCard = ({ product }: ProductCardProps) => {
+const ProductCard = ({ product, priority = false }: ProductCardProps) => {
   const addToCart = useCartStore((state) => state.add);
   const { toast } = useToast();
 
@@ -27,6 +28,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
           alt={product.name}
           fill
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          priority={priority}
           className="object-cover"
         />
       </div>

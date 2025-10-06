@@ -1,28 +1,15 @@
 import { prisma } from "@/lib/db";
+import { ensureDefaultCategories } from "@/lib/ensureDefaultCategories";
 import Link from "next/link";
 import ProductForm from "../_components/product-form";
 
+const ALLOWED_CATEGORY_SLUGS = ["motor", "suspension", "frenos"] as const;
+
 export default async function NewProductPage() {
-  // ✅ Crear las categorías si no existen, sin usar skipDuplicates
-  const DEFAULT_CATEGORIES = [
-    { name: "Motor", slug: "motor" },
-    { name: "Suspensión", slug: "suspension" },
-    { name: "Frenos", slug: "frenos" },
-  ];
+  await ensureDefaultCategories();
 
-  // Crea o mantiene existentes
-  await Promise.all(
-    DEFAULT_CATEGORIES.map((c) =>
-      prisma.category.upsert({
-        where: { slug: c.slug },
-        update: {}, // no cambia nada si ya existe
-        create: { name: c.name, slug: c.slug },
-      })
-    )
-  );
-
-  // Trae todas las categorías ordenadas
   const categories = await prisma.category.findMany({
+    where: { slug: { in: [...ALLOWED_CATEGORY_SLUGS] } },
     orderBy: { name: "asc" },
   });
 

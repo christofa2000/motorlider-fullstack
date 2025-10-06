@@ -8,9 +8,12 @@ import {
 } from "@/lib/validators/product";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Category, Product } from "@prisma/client";
+import type { z } from "zod";
 import { useRouter } from "next/navigation";
 import { useEffect, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
+
+type ProductFormValues = z.input<typeof productCreateSchema>;
 
 interface ProductFormProps {
   product?: Product;
@@ -22,6 +25,26 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
   const router = useRouter();
   const { toast } = useToast();
 
+  const defaultValues: ProductFormValues = product
+    ? {
+        name: product.name,
+        slug: product.slug,
+        price: product.price / 100, // Convert cents to currency unit
+        stock: product.stock,
+        image: product.image ?? "",
+        categoryId: product.categoryId,
+        brand: product.brand ?? undefined,
+      }
+    : {
+        name: "",
+        slug: "",
+        price: 0,
+        stock: 0,
+        image: "",
+        categoryId: "",
+        brand: undefined,
+      };
+
   const {
     register,
     handleSubmit,
@@ -29,27 +52,9 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
     formState: { errors },
     watch,
     setValue,
-  } = useForm<ProductCreateData>({
+  } = useForm<ProductFormValues>({
     resolver: zodResolver(productCreateSchema),
-    defaultValues: product
-      ? {
-          name: product.name,
-          slug: product.slug,
-          price: product.price / 100, // Convert cents to currency unit
-          stock: product.stock,
-          image: product.image ?? "",
-          categoryId: product.categoryId,
-          brand: product.brand ?? undefined,
-        }
-      : {
-          name: "",
-          slug: "",
-          price: 0,
-          stock: 0,
-          image: "",
-          categoryId: "",
-          brand: undefined,
-        },
+    defaultValues,
   });
 
   const watchedName = watch("name");
@@ -60,7 +65,7 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
     }
   }, [watchedName, setValue]);
 
-  const onSubmit = (data: ProductCreateData) => {
+  const onSubmit = (data: ProductFormValues) => {
     startTransition(async () => {
       try {
         const apiPath = product
@@ -68,9 +73,11 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
           : "/api/products";
         const method = product ? "PATCH" : "POST";
 
+        const parsedData: ProductCreateData = productCreateSchema.parse(data);
+
         const payload = {
-          ...data,
-          price: Math.round(data.price * 100), // Convert to cents
+          ...parsedData,
+          price: Math.round(parsedData.price * 100), // Convert to cents
         };
 
         const res = await fetch(apiPath, {
@@ -287,3 +294,4 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
     </form>
   );
 }
+
