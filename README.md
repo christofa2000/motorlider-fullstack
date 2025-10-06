@@ -1,206 +1,108 @@
 # Motorlider E-commerce Starter
 
-
-
-Marketplace base para un e-commerce de repuestos construido con **Next.js 15**, **TypeScript** y **TailwindCSS**. Esta iteración incorpora persistencia real con Prisma, un panel de administración protegido y endpoints REST listos para integrarse con el storefront existente.
-
-
-
-## Captura
-
-
-
-![Vista previa de Motorlider](public/images/motorlider.png)
-
-
+Base para un e-commerce de repuestos construido con **Next.js 15**, **React 19**, **TypeScript** y **TailwindCSS**. Incluye panel de administracion, API protegida y configuracion lista para desplegar en Vercel con Postgres administrado.
 
 ## Stack
 
-
-
 - Next.js 15 (App Router) + React 19
-
 - TypeScript (`strict: true`) + Jest/ts-jest
-
 - TailwindCSS 4
-
-- Prisma ORM + SQLite (migrable a Postgres)
-
+- Prisma ORM + Postgres remoto
 - Zod para validaciones
+- Zustand para estado del carrito
 
-- Zustand para el carrito
-
-
-
-## Funcionalidades Clave
-
-
+## Caracteristicas destacadas
 
 ### Storefront
 
-- Home SSR/SSG consumiendo `/api/products` con fallback automático a mocks si la API falla.
-
-- Búsqueda por `?q=` y filtro por categoría `?cat=` desde el servidor.
-
-- `formatCurrency` normaliza valores en centavos (dos decimales).
-
-
+- Home renderizada en el servidor consumiendo `/api/products` con fallback a mocks si la API falla.
+- Busqueda por `?q=` y filtro por categoria `?cat=` directamente desde el servidor.
+- Utilidad `formatCurrency` que opera en centavos para evitar errores de coma flotante.
 
 ### Backend & API
 
-- Modelos `Category` y `Product` en Prisma (`prisma/schema.prisma`).
+- Modelos `Category` y `Product` definidos en `prisma/schema.prisma`.
+- Endpoints REST en `/api/products` con respuestas `{ ok, data?, error? }`.
+- Validaciones con Zod en `lib/validators/product.ts`.
+- Seed (`tsx prisma/seed.ts`) que hace `upsert` de las categorias base: Motor, Suspension y Frenos.
+- Ruta `/api/upload` que sube imagenes a Cloudinary y devuelve `secure_url` + `public_id`.
 
-- CRUD REST bajo `/api/products` con respuestas `{ ok, data?, error? }`.
+### Panel de administracion
 
-- Validaciones con Zod (`lib/validators/product.ts`) y manejo explícito de duplicados (409).
-
-- Seed script (`tsx prisma/seed.ts`) con 3 categorias y 12 productos demo ejecutable con `npx prisma db seed`.
-
-
-
-### Panel de Administración
-
-- Middleware (`src/middleware.ts`) que exige un token (`ADMIN_TOKEN`) para `/admin/**` y métodos mutables en `/api/products`.
-
-- Login minimalista en `/admin/login` que guarda cookie httpOnly.
-
-- Listado `/admin/products` con búsqueda, filtros, paginación, edición y borrado con `ConfirmDialog` reutilizado.
-
-- Formularios de creación/edición con validación cliente + toasts reutilizando la paleta existente.
-
-
+- Middleware (`src/middleware.ts`) que exige cookie `admin_token` para `/admin/**` y mutaciones.
+- Login en `/admin/login` que guarda cookie httpOnly comparando contra `ADMIN_TOKEN`.
+- Listado `/admin/products` con filtros, paginacion, edicion y borrado.
+- Formularios reutilizables con React Hook Form, toasts y carga de imagenes a Cloudinary.
 
 ### Carrito
 
-- El store guarda los productos en una caché interna para cálculos en centavos y se persiste en localStorage (versión `motorlider-cart-v2`).
+- Manejo en centavos, persistencia en `localStorage` y derivados memorizados.
 
-- Selectores derivados actualizados a la nueva estructura.
+## Estructura
 
-
-
-### Tests
-
-- Pruebas de integración para POST/PATCH/DELETE en `test/api/products.test.ts` levantando una base SQLite temporal (Jest + Prisma).
-
-
-
-## Estructura Destacada
-
-
-
-```
-
+```text
 src/
-
-+- app/
-
-¦  +- api/products/route.ts         # GET + POST
-
-¦  +- api/products/[id]/route.ts    # GET + PATCH + DELETE
-
-¦  +- admin/login/(page|route).tsx  # Login protegido
-
-¦  +- admin/products/               # Listado + formularios
-
-¦  +- cart/page.tsx                 # Carrito actualizado
-
-¦  +- page.tsx                      # Home SSR con fetch a la API
-
-+- lib/
-
-¦  +- auth.ts                       # Helpers de autenticación admin
-
-¦  +- db.ts                         # PrismaClient singleton
-
-¦  +- products.ts                   # Fetch SSR + fallback a mocks
-
-¦  +- slugify.ts                    # Normalización de slugs
-
-¦  +- validators/product.ts         # Esquemas Zod
-
-+- store/cart.ts                    # Store Zustand v2 (centavos)
-
-+- data/                            # Mocks tipados (fallback)
-
-+- test/api/products.test.ts        # Pruebas API
-
+|- app/
+|  |- api/products/route.ts       # GET + POST
+|  |- api/products/[id]/route.ts  # GET + PATCH + DELETE
+|  |- api/upload/route.ts         # Subida de imagenes (Cloudinary)
+|  |- admin/login/page.tsx        # Login protegido
+|  |- admin/products/             # Listado + formularios
+|  \- page.tsx                    # Home SSR
+|- lib/
+|  |- db.ts                       # PrismaClient singleton
+|  |- products.ts                 # Fetch SSR + fallback
+|  \- validators/product.ts       # Esquemas Zod
+|- store/cart.ts                  # Store Zustand
+\- prisma/schema.prisma           # Modelos
 ```
 
+## Desarrollo
 
+1. Copia `.env.example` a `.env.local` y completa las variables.
+2. Instala dependencias: `npm install`.
+3. Ejecuta migraciones: `npx prisma migrate dev`.
+4. Poblado inicial: `npx prisma db seed` (categorias base).
+5. Levanta el proyecto: `npm run dev`.
 
-## Puesta en Marcha
+### Scripts utiles
 
+- `npm run lint`
+- `npm run test`
+- `npx prisma studio`
 
+## Variables de entorno
 
-```bash
-
-npm install
-
-npx prisma migrate dev --name init   # crea la primera migracion en SQLite
-
-npx prisma db seed                   # carga categorias y productos demo
-
-npm run dev                          # http://localhost:3000
-
+```text
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DB?sslmode=require"
+CLOUDINARY_CLOUD_NAME=...
+CLOUDINARY_API_KEY=...
+CLOUDINARY_API_SECRET=...
+ADMIN_TOKEN=...
 ```
 
+Consulta `.env.example` para la version mas reciente y evita commitear secretos (`.env*` esta en `.gitignore`).
 
+## QA local
 
-Scripts útiles:
+- `npx prisma migrate dev`
+- `npx prisma db seed`
+- `npm run dev`
 
+## Despliegue en Vercel
 
-
-- `npx prisma studio` - Prisma Studio.
-
-- `npm run test -- --runTestsByPath test/api/products.test.ts` ? pruebas API.
-
-
-
-## Variables de Entorno
-
-
-
-Crea un `.env` con al menos:
-
-
-
-```
-
-DATABASE_URL="file:./dev.db"
-
-ADMIN_TOKEN="token-super-seguro"
-
-NEXT_PUBLIC_APP_URL="http://localhost:3000"   # opcional pero recomendado para SSR en producción
-
-```
-
-
-
-### Cambiar a Postgres
-
-1. En `prisma/schema.prisma` cambia `provider = "postgresql"` y ajusta `DATABASE_URL`.
-
-2. Ejecuta `npx prisma migrate dev --name init-postgres`.
-
-3. Actualiza `npx prisma db seed` o el contenido de `prisma/seed.ts` con datos compatibles.
-
-
+1. En Vercel > Settings > Environment Variables define:
+   - `DATABASE_URL` (cadena de Neon o equivalente Postgres)
+   - `CLOUDINARY_CLOUD_NAME`
+   - `CLOUDINARY_API_KEY`
+   - `CLOUDINARY_API_SECRET`
+   - `ADMIN_TOKEN`
+2. Build Command: `npm run build`
+3. Output Directory: `.next`
+4. Despliega normalmente (Vercel detectara Next.js).
 
 ## Notas
 
-
-
-- Los precios se manejan en centavos (enteros) para evitar errores de coma flotante.
-
-- Si la API no responde, `lib/products.ts` devuelve los mocks tipados para no romper el storefront.
-
-- El panel admin exige estar autenticado; usa el token configurado y navega a `/admin/products` para CRUD completo.
-
-
-
----
-
-
-
-Construido con foco en DX para acelerar la evolución del e-commerce Motorlider.
-
+- Prisma se conecta a Postgres; en desarrollo puedes usar una base Neon gratuita.
+- Todos los precios se guardan como enteros (centavos) y se convierten en el cliente.
+- Usa `npm run build` antes de desplegar para correr `next build` y `prisma migrate deploy`.

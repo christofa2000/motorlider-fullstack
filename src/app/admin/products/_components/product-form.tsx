@@ -10,7 +10,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Category, Product } from "@prisma/client";
 import type { z } from "zod";
 import { useRouter } from "next/navigation";
-import { useEffect, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
+import type { ChangeEvent } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 type ProductFormValues = z.input<typeof productCreateSchema>;
@@ -22,6 +23,7 @@ interface ProductFormProps {
 
 export default function ProductForm({ product, categories }: ProductFormProps) {
   const [isPending, startTransition] = useTransition();
+  const [uploading, setUploading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -64,6 +66,50 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
       setValue("slug", slugify(watchedName), { shouldValidate: true });
     }
   }, [watchedName, setValue]);
+
+  async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: fd,
+      });
+      const data = await res.json();
+      setUploading(false);
+
+      if (res.ok && data.ok && data.url) {
+        setValue("image", data.url, { shouldValidate: true });
+        toast({
+          title: "Imagen subida",
+          description: "Se vinculó al producto.",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description:
+            data.error ?? "No se pudo subir la imagen",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      setUploading(false);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "No se pudo subir la imagen";
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+    }
+  }
 
   const onSubmit = (data: ProductFormValues) => {
     startTransition(async () => {
@@ -272,6 +318,13 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
           placeholder="/images/products/example.jpg"
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm"
         />
+        <label className="block text-sm font-medium text-gray-700 mt-4">
+          Subir imagen
+        </label>
+        <input type="file" accept="image/*" onChange={handleFileChange} />
+        {uploading && (
+          <p className="text-sm text-gray-500 mt-1">Subiendo...</p>
+        )}
         {errors.image && (
           <p className="mt-1 text-sm text-red-600">{errors.image.message}</p>
         )}

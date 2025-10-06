@@ -1,15 +1,9 @@
 import { prisma } from "@/lib/db";
-import { ensureDefaultCategories } from "@/lib/ensureDefaultCategories";
 import Link from "next/link";
 import ProductForm from "../_components/product-form";
 
-const ALLOWED_CATEGORY_SLUGS = ["motor", "suspension", "frenos"] as const;
-
 export default async function NewProductPage() {
-  await ensureDefaultCategories();
-
   const categories = await prisma.category.findMany({
-    where: { slug: { in: [...ALLOWED_CATEGORY_SLUGS] } },
     orderBy: { name: "asc" },
   });
 

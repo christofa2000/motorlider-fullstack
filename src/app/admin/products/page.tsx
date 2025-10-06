@@ -1,15 +1,9 @@
-import { Suspense } from "react";
 import { prisma } from "@/lib/db";
-import { ensureDefaultCategories } from "@/lib/ensureDefaultCategories";
 import ProductsPageClient from "./_components/products-page-client";
-
-const ALLOWED_CATEGORY_SLUGS = ["motor", "suspension", "frenos"] as const;
+import { Suspense } from "react";
 
 export default async function ProductsPage() {
-  await ensureDefaultCategories();
-
   const categories = await prisma.category.findMany({
-    where: { slug: { in: [...ALLOWED_CATEGORY_SLUGS] } },
     orderBy: { name: "asc" },
   });
 
