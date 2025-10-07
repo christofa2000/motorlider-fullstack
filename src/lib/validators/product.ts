@@ -6,7 +6,7 @@ export const productCreateSchema = z.object({
   brand: z.string().optional(),
   price: z.number().min(0, "Price must be a positive number"),
   stock: z.number().int().min(0, "Stock must be a positive integer"),
-  image: z.union([z.string().url(), z.string().startsWith("/images/"), z.literal("")]).default(""),
+  image: z.string().optional(),
   categoryId: z.string().min(1, "Category is required"),
 });
 

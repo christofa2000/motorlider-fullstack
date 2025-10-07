@@ -1,13 +1,13 @@
 import { prisma } from "@/lib/db";
 import { productCreateSchema } from "@/lib/validators/product";
 import { Prisma } from "@prisma/client";
+import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-// Removed invalid import: ProductWhereInput is not exported by @prisma/client
-
 const getProductsSchema = z.object({
   q: z.string().optional(),
+  // AHORA 'cat' es el SLUG de la categoría, no el ID.
   cat: z.string().optional(),
   page: z.coerce.number().int().min(1).optional().default(1),
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(10),
@@ -31,13 +31,14 @@ export async function GET(req: NextRequest) {
     const where: Prisma.ProductWhereInput = {};
     if (q) {
       where.OR = [
-        { name: { contains: q } },
-        { brand: { contains: q } },
+        { name: { contains: q, mode: "insensitive" } },
+        { brand: { contains: q, mode: "insensitive" } },
       ];
     }
+
+    // Filtramos por SLUG de categoría
     if (cat) {
-      // cat debe ser el categoryId (string). Si mandas slug, hay que hacer join.
-      where.categoryId = cat;
+      where.category = { slug: cat };
     }
 
     const [products, total] = await prisma.$transaction([
@@ -51,7 +52,6 @@ export async function GET(req: NextRequest) {
       prisma.product.count({ where }),
     ]);
 
-    // Forma compatible con el cliente
     return NextResponse.json({
       ok: true,
       data: {
@@ -102,9 +102,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Fallback de imagen si viene vacía
+    const imageUrl = parsedBody.data.image?.trim() || "/images/prueba.jpeg";
+
     const product = await prisma.product.create({
-      data: parsedBody.data,
+      data: {
+        ...parsedBody.data,
+        image: imageUrl,
+      },
     });
+
+    // Revalida la home para que aparezca al instante
+    revalidatePath("/");
 
     return NextResponse.json({ ok: true, data: product }, { status: 201 });
   } catch (error) {

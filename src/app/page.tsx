@@ -1,3 +1,7 @@
+export const dynamic = "force-dynamic";
+
+import type { Product } from "@/types";
+import { headers } from "next/headers";
 import {
   CategoryBar,
   Footer,
@@ -6,7 +10,28 @@ import {
   SearchBar,
 } from "../components";
 import { categories, categoryBySlug } from "../data/categories";
-import { fetchProducts } from "../lib/products";
+import { mockProducts } from "../data/products";
+
+type ApiProduct = Product & {
+  category?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+};
+
+const fallbackProducts: ApiProduct[] = mockProducts.map((product) => {
+  const category = categories.find((item) => item.id === product.categoryId);
+
+  return {
+    ...product,
+    category: category ?? {
+      id: product.categoryId,
+      name: "Sin categoria",
+      slug: "sin-categoria",
+    },
+  };
+});
 
 const normalize = (value: string) => value.trim().toLowerCase();
 
@@ -68,9 +93,7 @@ const getEmptyStateDescription = (
 
 const HomePage = async ({ searchParams }: HomePageProps) => {
   const resolvedSearchParams =
-    searchParams instanceof Promise
-      ? await searchParams
-      : searchParams ?? {};
+    searchParams instanceof Promise ? await searchParams : searchParams ?? {};
 
   const params = resolvedSearchParams;
 
@@ -78,21 +101,67 @@ const HomePage = async ({ searchParams }: HomePageProps) => {
     Array.isArray(value) ? value[0] ?? "" : value ?? "";
 
   const query = getParamValue(params["q"]);
-  const categorySlug = getParamValue(params["cat"]);
+  const categorySlug = getParamValue(params["cat"]); // ← usamos SLUG desde la URL
   const normalizedQuery = normalize(query);
   const selectedCategory = categorySlug
     ? categoryBySlug[categorySlug]
     : undefined;
-  const selectedCategoryId = selectedCategory?.id;
 
-  const products = await fetchProducts({
-    q: query,
-    cat: categorySlug,
-    pageSize: 100,
-  });
+  const searchQuery = new URLSearchParams({ pageSize: "100" });
+  if (query) searchQuery.set("q", query);
+  if (categorySlug) searchQuery.set("cat", categorySlug); // ← enviamos SLUG a la API
+
+  let products: ApiProduct[] = [];
+  try {
+    let base = process.env.NEXT_PUBLIC_SITE_URL;
+    if (!base) {
+      const h = await (headers() as unknown as Promise<Headers>);
+      const host = h.get("x-forwarded-host") ?? h.get("host");
+      const proto = h.get("x-forwarded-proto") ?? "http";
+      base = host ? `${proto}://${host}` : "http://localhost:3000";
+    }
+
+    const res = await fetch(`${base}/api/products?${searchQuery.toString()}`, {
+      cache: "no-store",
+    });
+
+    if (res.ok) {
+      const payload = (await res.json()) as {
+        ok: boolean;
+        data?: { items: ApiProduct[] };
+      };
+      if (payload.ok && payload.data?.items) {
+        products = payload.data.items;
+      }
+    }
+  } catch (error) {
+    console.error("[HOME_FETCH_PRODUCTS]", error);
+  }
+
+  // Fallback a mock sólo si no hay nada desde la API
+  if (products.length === 0) {
+    const normalizedBrand = (value: string | undefined | null) =>
+      value?.toLowerCase() ?? "";
+
+    const selectedCategoryId = categorySlug
+      ? categoryBySlug[categorySlug]?.id
+      : undefined;
+
+    products = fallbackProducts.filter((product) => {
+      const matchesCategory = selectedCategoryId
+        ? product.categoryId === selectedCategoryId
+        : true;
+      const matchesQuery =
+        normalizedQuery.length > 0
+          ? product.name.toLowerCase().includes(normalizedQuery) ||
+            normalizedBrand(product.brand).includes(normalizedQuery)
+          : true;
+
+      return matchesCategory && matchesQuery;
+    });
+  }
 
   const hasQuery = normalizedQuery.length > 0;
-  const hasCategory = Boolean(selectedCategoryId);
   const headingText = getHeading(query, normalizedQuery, categorySlug);
 
   return (
@@ -116,11 +185,11 @@ const HomePage = async ({ searchParams }: HomePageProps) => {
             <h1 className="text-2xl font-semibold text-slate-900">
               {headingText}
             </h1>
-            {hasQuery || hasCategory ? (
+            {hasQuery || categorySlug ? (
               <p className="text-sm text-slate-600">
                 Encontramos {products.length}{" "}
-                {products.length === 1 ? "producto" : "productos"} que
-                coinciden con tu busqueda.
+                {products.length === 1 ? "producto" : "productos"} que coinciden
+                con tu busqueda.
               </p>
             ) : (
               <p className="text-sm text-slate-600">
@@ -139,7 +208,11 @@ const HomePage = async ({ searchParams }: HomePageProps) => {
           ) : (
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
               {products.map((product, index) => (
-                <ProductCard key={product.id} product={product} priority={index === 0} />
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  priority={index === 0}
+                />
               ))}
             </div>
           )}
@@ -150,4 +223,6 @@ const HomePage = async ({ searchParams }: HomePageProps) => {
   );
 };
 
-export default HomePage as unknown as (props: { searchParams?: Promise<Record<string, string | string[]>> }) => ReturnType<typeof HomePage>;
+export default HomePage as unknown as (props: {
+  searchParams?: Promise<Record<string, string | string[]>>;
+}) => ReturnType<typeof HomePage>;
