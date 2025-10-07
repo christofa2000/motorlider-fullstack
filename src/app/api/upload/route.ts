@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
+import type { UploadApiResponse, UploadApiErrorResponse } from "cloudinary";
 
 export const runtime = "nodejs";
 
@@ -13,18 +14,26 @@ cloudinary.config({
 export async function POST(req: NextRequest) {
   try {
     const form = await req.formData();
-    const file = form.get("file") as File | null;
+    const file = form.get("file");
 
-    if (!file) {
-      return NextResponse.json({ ok: false, error: "No file" }, { status: 400 });
+    if (!(file instanceof File)) {
+      return NextResponse.json(
+        { ok: false, error: "Archivo no válido" },
+        { status: 400 }
+      );
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
 
-    const result = await new Promise<any>((resolve, reject) => {
+    const result: UploadApiResponse = await new Promise<UploadApiResponse>((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         { folder: "motorlider/products" },
-        (err, res) => (err ? reject(err) : resolve(res))
+        (err: UploadApiErrorResponse | undefined, res: UploadApiResponse | undefined) => {
+          if (err) return reject(err);
+          if (!res) return reject(new Error("Upload failed: no response"));
+          return resolve(res);
+        }
       );
       stream.end(buffer);
     });
@@ -34,10 +43,8 @@ export async function POST(req: NextRequest) {
       url: result.secure_url,
       publicId: result.public_id,
     });
-  } catch (e: any) {
-    return NextResponse.json(
-      { ok: false, error: e?.message ?? "Upload failed" },
-      { status: 500 }
-    );
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Upload failed";
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
