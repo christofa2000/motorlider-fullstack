@@ -35,7 +35,10 @@ type MockRequest = {
 const createRequest = (body?: unknown): MockRequest => ({
   json: async () => body,
   cookies: {
-    get: (name: string) => (name === "admin_token" && process.env.ADMIN_TOKEN ? { value: process.env.ADMIN_TOKEN } : undefined),
+    get: (name: string) =>
+      name === "admin_token" && process.env.ADMIN_TOKEN
+        ? { value: process.env.ADMIN_TOKEN }
+        : undefined,
   },
 });
 
@@ -165,7 +168,9 @@ describe("/api/products", () => {
     );
     expect(response.status).toBe(200);
 
-    const updated = await prisma.product.findUnique({ where: { id: product.id } });
+    const updated = await prisma.product.findUnique({
+      where: { id: product.id },
+    });
     expect(updated?.price).toBe(2500);
     expect(updated?.stock).toBe(4);
   });
@@ -184,34 +189,14 @@ describe("/api/products", () => {
 
     const { DELETE } = await import("@/app/api/products/[id]/route");
 
-    const response = await DELETE(createRequest() as any, { params: { id: product.id } });
+    const response = await DELETE(createRequest() as any, {
+      params: { id: product.id },
+    });
     expect(response.status).toBe(200);
 
-    const exists = await prisma.product.findUnique({ where: { id: product.id } });
+    const exists = await prisma.product.findUnique({
+      where: { id: product.id },
+    });
     expect(exists).toBeNull();
   });
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

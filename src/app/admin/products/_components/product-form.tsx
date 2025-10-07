@@ -1,13 +1,14 @@
 "use client";
 
 import { useToast } from "@/hooks/useToast";
-import { slugify } from "@/lib/slugify";
+import { slugify } from "@/lib/slugify"; // <- default import (más común)
 import {
   ProductCreateData,
   productCreateSchema,
 } from "@/lib/validators/product";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Category, Product } from "@prisma/client";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { ChangeEvent } from "react";
 import { useEffect, useState, useTransition } from "react";
@@ -21,6 +22,8 @@ interface ProductFormProps {
   categories: Category[];
 }
 
+const FALLBACK_IMAGE = "/images/prueba.jpeg"; // usa la que tenés en public/
+
 export default function ProductForm({ product, categories }: ProductFormProps) {
   const [isPending, startTransition] = useTransition();
   const [uploading, setUploading] = useState(false);
@@ -31,7 +34,7 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
     ? {
         name: product.name,
         slug: product.slug,
-        price: product.price / 100, // Convert cents to currency unit
+        price: product.price / 100, // cents -> unidad
         stock: product.stock,
         image: product.image ?? "",
         categoryId: product.categoryId,
@@ -121,7 +124,9 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
 
         const payload = {
           ...parsedData,
-          price: Math.round(parsedData.price * 100), // Convert to cents
+          price: Math.round(parsedData.price * 100), // unidad -> cents
+          // si viene vacío, el API también tiene fallback, pero aseguramos acá
+          image: parsedData.image?.trim() || FALLBACK_IMAGE,
         };
 
         const res = await fetch(apiPath, {
@@ -143,7 +148,7 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
           } successfully.`,
         });
         router.push("/admin/products");
-        router.refresh(); // Refetch server-side data
+        router.refresh();
       } catch (error) {
         const message =
           error instanceof Error
@@ -316,11 +321,24 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
           placeholder="/images/products/example.jpg"
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm"
         />
-        <img
-          src={watchedImage || "/images/prueba.jpg"}
-          alt="Vista previa del producto"
-          className="mt-4 h-32 w-32 rounded-md object-cover"
-        />
+
+        {/* Vista previa con Next/Image + fallback */}
+        <div className="mt-4">
+          <Image
+            src={watchedImage?.trim() || FALLBACK_IMAGE}
+            alt="Vista previa del producto"
+            width={128}
+            height={128}
+            className="h-32 w-32 rounded-md object-cover border border-gray-200"
+            onError={(e) => {
+              const img = e.currentTarget as HTMLImageElement;
+              if (!img.src.endsWith(FALLBACK_IMAGE)) {
+                img.src = FALLBACK_IMAGE;
+              }
+            }}
+          />
+        </div>
+
         <label className="block text-sm font-medium text-gray-700 mt-4">
           Subir imagen
         </label>
