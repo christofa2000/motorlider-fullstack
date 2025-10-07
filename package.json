@@ -58,5 +58,8 @@
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
+  },
+  "optionalDependencies": {
+    "@next/swc-linux-x64-gnu": "^15.5.4"
   }
 }
