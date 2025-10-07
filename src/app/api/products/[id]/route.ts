@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { productUpdateSchema } from "@/lib/validators/product";
 import { Prisma } from "@prisma/client";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  _req: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const product = await prisma.product.findUnique({
       where: { id },
       include: { category: true },
@@ -33,13 +33,17 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
+
     const adminToken = req.cookies.get("admin_token")?.value;
     if (adminToken !== process.env.ADMIN_TOKEN) {
-      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { ok: false, error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
     const body = await req.json();
@@ -55,10 +59,7 @@ export async function PATCH(
     const { slug } = parsedBody.data;
     if (slug) {
       const existingProduct = await prisma.product.findFirst({
-        where: {
-          slug,
-          id: { not: id },
-        },
+        where: { slug, id: { not: id } },
       });
 
       if (existingProduct) {
@@ -71,28 +72,39 @@ export async function PATCH(
 
     const { categoryId, ...rest } = parsedBody.data;
 
+    // category es REQUERIDA -> no se permite disconnect/set null
+    if (categoryId === null) {
+      return NextResponse.json(
+        { ok: false, error: "categoryId cannot be null: required relation." },
+        { status: 400 }
+      );
+    }
+
+    const data: Prisma.ProductUpdateInput = {
+      ...rest,
+      ...(categoryId !== undefined
+        ? { category: { connect: { id: categoryId } } }
+        : {}),
+      // Nota: si NO viene categoryId, no tocamos la relación
+    };
+
     const product = await prisma.product.update({
       where: { id },
-      data: {
-        ...rest,
-        ...(categoryId !== undefined
-          ? categoryId
-            ? { category: { connect: { id: categoryId } } }
-            : { category: { disconnect: true } }
-          : {}),
-      },
+      data,
       include: { category: true },
     });
 
     return NextResponse.json({ ok: true, data: product });
   } catch (error) {
     console.error("[PRODUCT_PATCH]", error);
-    // Prisma's P2025 is for record not found on update
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-        return NextResponse.json(
-            { ok: false, error: "Product not found" },
-            { status: 404 }
-        );
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      return NextResponse.json(
+        { ok: false, error: "Product not found" },
+        { status: 404 }
+      );
     }
     return NextResponse.json(
       { ok: false, error: "Internal Server Error" },
@@ -103,28 +115,32 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
+
     const adminToken = req.cookies.get("admin_token")?.value;
     if (adminToken !== process.env.ADMIN_TOKEN) {
-      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { ok: false, error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
-    await prisma.product.delete({
-      where: { id },
-    });
+    await prisma.product.delete({ where: { id } });
 
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("[PRODUCT_DELETE]", error);
-    // Prisma's P2025 is for record not found on delete
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-        return NextResponse.json(
-            { ok: false, error: "Product not found" },
-            { status: 404 }
-        );
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      return NextResponse.json(
+        { ok: false, error: "Product not found" },
+        { status: 404 }
+      );
     }
     return NextResponse.json(
       { ok: false, error: "Internal Server Error" },
