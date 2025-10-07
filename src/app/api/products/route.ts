@@ -105,11 +105,15 @@ export async function POST(req: NextRequest) {
     // Fallback de imagen si viene vacía
     const imageUrl = parsedBody.data.image?.trim() || "/images/prueba.jpeg";
 
+    const { categoryId, ...rest } = parsedBody.data;
+
     const product = await prisma.product.create({
       data: {
-        ...parsedBody.data,
+        ...rest,
         image: imageUrl,
+        category: { connect: { id: categoryId } },
       },
+      include: { category: true },
     });
 
     // Revalida la home para que aparezca al instante

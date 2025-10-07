@@ -69,9 +69,19 @@ export async function PATCH(
       }
     }
 
+    const { categoryId, ...rest } = parsedBody.data;
+
     const product = await prisma.product.update({
       where: { id },
-      data: parsedBody.data,
+      data: {
+        ...rest,
+        ...(categoryId !== undefined
+          ? categoryId
+            ? { category: { connect: { id: categoryId } } }
+            : { category: { disconnect: true } }
+          : {}),
+      },
+      include: { category: true },
     });
 
     return NextResponse.json({ ok: true, data: product });

@@ -64,7 +64,9 @@ async function main() {
         price: p.price, // ya está en centavos
         stock: p.stock ?? 0,
         image,
-        ...(categoryId ? { categoryId } : {}),
+        ...(categoryId
+          ? { category: { connect: { id: categoryId } } }
+          : { category: { disconnect: true } }),
       },
       create: {
         name: p.name,
@@ -73,7 +75,7 @@ async function main() {
         price: p.price,
         stock: p.stock ?? 0,
         image,
-        ...(categoryId ? { categoryId } : {}),
+        ...(categoryId ? { category: { connect: { id: categoryId } } } : {}),
       },
     });
   }
