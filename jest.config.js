@@ -3,13 +3,14 @@ module.exports = {
   collectCoverageFrom: [
     "src/**/*.{ts,tsx}",
     "!src/**/*.d.ts",
-    "!src/**/__tests__/*"
+    "!src/**/__tests__/*",
   ],
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
     "^.+\\.(css|scss|sass)$": "<rootDir>/test/__mocks__/styleMock.js",
-    "^.+\\.(gif|jpg|jpeg|png|webp|svg|ico|bmp|avif)$": "<rootDir>/test/__mocks__/fileMock.js"
+    "^.+\\.(gif|jpg|jpeg|png|webp|svg|ico|bmp|avif)$":
+      "<rootDir>/test/__mocks__/fileMock.js",
   },
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
   testEnvironment: "jest-environment-jsdom",
@@ -18,8 +19,10 @@ module.exports = {
     "^.+\\.(t|j)sx?$": [
       "ts-jest",
       {
-        tsconfig: "<rootDir>/tsconfig.jest.json"
-      }
-    ]
-  }
+        tsconfig: "<rootDir>/tsconfig.jest.json",
+      },
+    ],
+  },
+  // Configuración para tests con SQLite
+  setupFiles: ["<rootDir>/jest.env.js"],
 };

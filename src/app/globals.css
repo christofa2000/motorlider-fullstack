@@ -1,1 +1,484 @@
 @import "tailwindcss";
+
+/* ====== VARIABLES DE BRANDING AUTOMOTRIZ MOTORLIDER ====== */
+:root {
+  /* Colores principales del branding */
+  --color-primary: #1c1c1c; /* Gris oscuro industrial */
+  --color-secondary: #005b96; /* Azul metálico */
+  --color-accent: #d72638; /* Rojo automotriz */
+  --color-contrast: #ffffff; /* Blanco para contraste */
+
+  /* Escala de grises */
+  --color-neutral-50: #f8fafc;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #64748b;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1e293b;
+  --color-neutral-900: #0f172a;
+
+  /* Colores de marca */
+  --brand-warm: #f59e0b; /* Ámbar para highlights */
+  --brand-cool: #06b6d4; /* Cian para acentos fríos */
+
+  /* Tokens mejorados para mejor contraste */
+  --bg: #0f0f10; /* Fondo principal más suave */
+  --panel: rgba(255, 255, 255, 0.06); /* Paneles con transparencia sutil */
+  --panel-hover: rgba(255, 255, 255, 0.1); /* Hover de paneles */
+  --text: #f1f5f9; /* Texto principal */
+  --muted: #cbd5e1; /* Texto secundario */
+  --accent: #d72638; /* Rojo automotriz */
+  --accent-2: #005b96; /* Azul metálico */
+
+  /* Superficies para tema oscuro */
+  --surface: color-mix(in oklab, var(--color-neutral-800) 94%, black 6%);
+  --surface-alt: color-mix(in oklab, var(--color-neutral-800) 90%, black 10%);
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --on-surface: var(--color-contrast);
+
+  /* Radios y sombras */
+  --radius: 0.5rem;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -4px rgba(0, 0, 0, 0.1);
+
+  /* Transiciones */
+  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ====== RESET Y BASE ====== */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: linear-gradient(
+    to bottom,
+    var(--color-neutral-900),
+    var(--color-primary) 60%
+  );
+  color: var(--on-surface);
+  font-family: "Inter", system-ui, sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ====== COMPONENTES BASE ====== */
+.container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container {
+    max-width: 640px;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 768px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1024px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1280px;
+  }
+}
+
+/* ====== BOTONES AUTOMOTRICES ====== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: var(--transition);
+  cursor: pointer;
+  border: 1px solid transparent;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  min-height: 2.5rem;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  background-color: var(--color-accent);
+  color: var(--color-contrast);
+  border-color: var(--color-accent);
+}
+
+.btn-primary:hover {
+  background-color: color-mix(in oklab, var(--color-accent) 90%, black 10%);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.btn-secondary {
+  background-color: var(--color-secondary);
+  color: var(--color-contrast);
+  border-color: var(--color-secondary);
+}
+
+.btn-secondary:hover {
+  background-color: color-mix(in oklab, var(--color-secondary) 90%, black 10%);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.btn:not(.btn-primary):not(.btn-secondary) {
+  background-color: var(--surface);
+  color: var(--on-surface);
+  border-color: var(--border);
+}
+
+.btn:not(.btn-primary):not(.btn-secondary):hover {
+  background-color: var(--surface-alt);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+/* ====== CARDS AUTOMOTRICES ====== */
+.card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background-color: var(--surface);
+  transition: var(--transition);
+  box-shadow: var(--shadow-sm);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-lg);
+}
+
+.card--flat {
+  background-color: var(--surface-alt);
+  border-color: var(--border);
+}
+
+/* ====== MEDIA Y IMÁGENES ====== */
+.media {
+  position: relative;
+  width: 100%;
+  background: var(--color-neutral-200);
+  overflow: hidden;
+}
+
+.media img {
+  object-fit: cover;
+  transition: var(--transition);
+}
+
+.card:hover .media img {
+  transform: scale(1.02);
+}
+
+/* ====== TIPOGRAFÍA ====== */
+.title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--on-surface);
+  line-height: 1.4;
+}
+
+.price {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.muted {
+  color: var(--color-neutral-300);
+}
+
+/* ====== BADGES DE STOCK ====== */
+.badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: saturate(120%);
+}
+
+.badge-ok {
+  background-color: #16a34a;
+}
+
+.badge-low {
+  background-color: #f59e0b;
+}
+
+.badge-out {
+  background-color: #dc2626;
+}
+
+/* ====== GRID DE PRODUCTOS ====== */
+.grid-products {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .grid-products {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-products {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* ====== CATEGORY BAR ====== */
+.category-bar {
+  background: color-mix(in oklab, var(--color-neutral-800), black 10%);
+  border-bottom: 1px solid var(--border);
+  color: var(--color-contrast);
+}
+
+.category-scroller {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  overflow-x: auto;
+  max-width: 72rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0.5rem 1rem;
+}
+
+.pill {
+  white-space: nowrap;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: var(--transition);
+  color: var(--color-contrast);
+  background: transparent;
+  cursor: pointer;
+}
+
+.pill:hover {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  transform: translateY(-1px);
+}
+
+.pill--active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+/* ====== TABLAS ADMIN ====== */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.table thead th {
+  text-align: left;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.2px;
+  color: var(--on-surface);
+  background: var(--surface-alt);
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.table tbody td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* ====== FORMULARIOS ====== */
+.input,
+.select,
+.textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--on-surface);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.75rem;
+  transition: var(--transition);
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(215, 38, 56, 0.1);
+}
+
+/* ====== FORMULARIOS ADMIN CON MEJOR CONTRASTE ====== */
+.admin-input {
+  background: #18181b; /* zinc-900 */
+  color: #f4f4f5; /* zinc-100 */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  transition: var(--transition);
+}
+
+.admin-input::placeholder {
+  color: #a1a1aa; /* zinc-400 */
+}
+
+.admin-input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+
+.admin-label {
+  color: #e4e4e7; /* zinc-200 */
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.admin-panel {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+}
+
+.admin-panel:hover {
+  background: var(--panel-hover);
+}
+
+/* ====== UTILIDADES ====== */
+.cell-right {
+  text-align: right;
+}
+
+.cell-center {
+  text-align: center;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--color-neutral-300);
+}
+
+.empty .title {
+  font-size: 1.25rem;
+  margin-top: 0.5rem;
+}
+
+/* ====== ANIMACIONES AUTOMOTRICES ====== */
+@keyframes pulseAccent {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--color-accent);
+  }
+  50% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+.animate-pulse-accent {
+  animation: pulseAccent 2s infinite;
+}
+
+/* ====== RESPONSIVE DESIGN ====== */
+@media (max-width: 768px) {
+  .container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .grid-products {
+    gap: 0.75rem;
+  }
+
+  .card {
+    border-radius: calc(var(--radius) - 2px);
+  }
+}
+
+/* ====== ACCESIBILIDAD ====== */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ====== MODO PERFORMANCE ====== */
+.perf-lite .card {
+  box-shadow: var(--shadow-sm);
+  transition: transform 160ms ease, border-color 160ms ease;
+}
+
+.perf-lite .card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.perf-lite .media img {
+  transition: transform 160ms ease;
+}
+
+.perf-lite .card:hover .media img {
+  transform: scale(1.01);
+}

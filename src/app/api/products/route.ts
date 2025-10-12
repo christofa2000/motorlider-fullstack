@@ -102,8 +102,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Fallback de imagen si viene vacía
-    const imageUrl = parsedBody.data.image?.trim() || "/images/prueba.jpeg";
+    // Sanitizar URL de imagen
+    const imageUrl = parsedBody.data.image?.trim() || "/images/products/placeholder.png";
 
     const { categoryId, ...rest } = parsedBody.data;
 

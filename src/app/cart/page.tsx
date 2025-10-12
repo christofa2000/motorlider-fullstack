@@ -1,12 +1,13 @@
 "use client";
 
+import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ProductImage from "@/components/ProductImage";
-import { formatCurrency } from "@/lib/format";
 import { getMockProductById } from "@/data";
+import { formatCurrency } from "@/lib/format";
 import {
   useCartCount,
   useCartIsHydrated,
@@ -29,7 +30,73 @@ type PendingAction =
   | { type: "remove"; productId: string; name: string }
   | { type: "clear" };
 
-const CartPage = () => {
+function QtyStepper({
+  value,
+  onChange,
+  label,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  label: string;
+}) {
+  const dec = () => onChange(Math.max(1, value - 1));
+  const inc = () => onChange(Math.min(10, value + 1));
+
+  return (
+    <div className="stepper" role="group" aria-label={label}>
+      <button
+        type="button"
+        aria-label="Disminuir cantidad"
+        onClick={dec}
+        className="icon-btn"
+        title="Disminuir"
+      >
+        <Minus className="w-4 h-4" aria-hidden="true" />
+      </button>
+      <input
+        aria-label={label}
+        inputMode="numeric"
+        pattern="[0-9]*"
+        min={1}
+        max={10}
+        value={value}
+        onChange={(e) => {
+          const n = Number(e.target.value);
+          if (!Number.isNaN(n)) onChange(Math.min(10, Math.max(1, n)));
+        }}
+      />
+      <button
+        type="button"
+        aria-label="Aumentar cantidad"
+        onClick={inc}
+        className="icon-btn"
+        title="Aumentar"
+      >
+        <Plus className="w-4 h-4" aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
+const CartHeader = () => (
+  <header className="z-30 bg-[var(--color-neutral-800)] text-[var(--color-contrast)] border-b border-white/10 lg:sticky lg:top-0">
+    <div className="container flex flex-col gap-4 md:flex-row md:items-center md:justify-between px-6">
+      <h1 className="flex items-center gap-3 py-6 md:py-8 text-2xl font-bold md:text-3xl">
+        <ShoppingCart className="h-7 w-7 text-[var(--color-accent)]" aria-hidden />
+        <span>Carrito</span>
+      </h1>
+      <Link
+        href="/"
+        prefetch={false}
+        className="btn btn-secondary w-full md:w-auto"
+      >
+        Volver al inicio
+      </Link>
+    </div>
+  </header>
+);
+
+export default function CartPage() {
   const isHydrated = useCartIsHydrated();
   const items = useCartItems();
   const productsMap = useCartProducts();
@@ -50,18 +117,14 @@ const CartPage = () => {
         .map((item) => {
           const product =
             productsMap[item.productId] ?? getMockProductById(item.productId);
-
-          if (!product) {
-            return null;
-          }
-
+          if (!product) return null;
           return {
             product,
             qty: item.qty,
             subtotal: item.qty * product.price,
           };
         })
-        .filter((entry): entry is CartDisplayItem => entry !== null),
+        .filter((e): e is CartDisplayItem => e !== null),
     [items, productsMap]
   );
 
@@ -80,16 +143,9 @@ const CartPage = () => {
   };
 
   const handleDialogConfirm = () => {
-    if (!pendingAction) {
-      return;
-    }
-
-    if (pendingAction.type === "remove") {
-      removeItem(pendingAction.productId);
-    } else {
-      clearCart();
-    }
-
+    if (!pendingAction) return;
+    if (pendingAction.type === "remove") removeItem(pendingAction.productId);
+    else clearCart();
     setDialogOpen(false);
     setPendingAction(null);
   };
@@ -103,63 +159,25 @@ const CartPage = () => {
     pendingAction?.type === "clear" ? "Vaciar carrito" : "Eliminar producto";
   const dialogDescription =
     pendingAction?.type === "clear"
-      ? "Esta accion eliminara todos los productos del carrito."
+      ? "Esta acciÃƒÂ³n eliminarÃƒÂ¡ todos los productos del carrito."
       : pendingAction?.name
-      ? `Queres eliminar "${pendingAction.name}" del carrito?`
+      ? `Ã‚Â¿QuerÃƒÂ©s eliminar Ã¢â‚¬Å“${pendingAction.name}Ã¢â‚¬Â del carrito?`
       : undefined;
   const dialogConfirmLabel =
     pendingAction?.type === "clear" ? "Vaciar" : "Eliminar";
 
-  const cartDescription = "Revisa tus productos antes de finalizar la compra.";
+  const cartDescription = "RevisÃƒÂ¡ tus productos antes de finalizar la compra.";
 
-  const CartHeader = () => (
-    <header className="z-30 bg-[var(--color-primary)] text-[var(--color-contrast)] shadow-md lg:sticky lg:top-0">
-      <div className="container flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <h1 className="flex items-center gap-3 py-10 text-2xl font-semibold md:text-3xl">
-          <svg
-            aria-hidden="true"
-            className="h-8 w-8"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M3 4h2l3 12h10l3-8H7"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <circle cx="10" cy="20" r="1" fill="currentColor" />
-            <circle cx="18" cy="20" r="1" fill="currentColor" />
-          </svg>
-          <span>Carrito</span>
-        </h1>
-        <Link
-          href="/"
-          className="btn btn-secondary w-full md:w-auto hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2 focus:ring-offset-[var(--color-primary)]"
-        >
-          Volver al inicio
-        </Link>
-      </div>
-    </header>
-  );
-
+  // Skeleton / Empty state usan el tema oscuro
   if (!isHydrated) {
     return (
       <>
         <CartHeader />
-        <main className="min-h-[60vh] bg-[var(--color-neutral-200)]/30">
-          <div className="container pt-20 pb-10 md:pt-24">
-            <div className="mb-4">
-              <p className="py-10 text-sm text-[var(--color-neutral-700)]">
-                {cartDescription}
-              </p>
-            </div>
-            <div className="rounded-xl border border-[var(--color-neutral-200)] bg-white p-8 text-center shadow-sm">
-              <p className="text-sm text-[var(--color-neutral-700)]">
-                Cargando carrito...
-              </p>
+        <main className="min-h-[60vh]">
+          <div className="container pt-12 pb-10 md:pt-16 px-6">
+            <p className="muted mb-4">{cartDescription}</p>
+            <div className="card p-8 text-center">
+              <p className="muted">Cargando carritoÃ¢â‚¬Â¦</p>
             </div>
           </div>
         </main>
@@ -171,24 +189,22 @@ const CartPage = () => {
     return (
       <>
         <CartHeader />
-        <main className="min-h-[60vh] bg-[var(--color-neutral-200)]/30">
-          <div className="container pt-20 pb-10 md:pt-24">
-            <div className="mb-4">
-              <p className="py-10 text-sm text-[var(--color-neutral-700)]">
-                {cartDescription}
-              </p>
-            </div>
-            <div className="mx-auto max-w-md rounded-xl border border-[var(--color-neutral-200)] bg-white p-8 text-center shadow-sm">
-              <p className="text-lg font-semibold text-[var(--color-primary)]">
-                Tu carrito esta vacio
-              </p>
-              <p className="mt-2 text-sm text-[var(--color-neutral-700)]">
-                Explora nuestros repuestos y agrega tus favoritos para continuar
-                con la compra.
+        <main className="min-h-[60vh]">
+          <div className="container pt-12 pb-10 md:pt-16 px-6">
+            <p className="muted mb-4">{cartDescription}</p>
+            <div className="card empty">
+              <ShoppingCart
+                className="w-10 h-10 mx-auto text-[var(--brand-warm)]"
+                aria-hidden
+              />
+              <div className="title">Tu carrito estÃƒÂ¡ vacÃƒÂ­o</div>
+              <p className="mt-2">
+                ExplorÃƒÂ¡ nuestras categorÃƒÂ­as y encontrÃƒÂ¡ lo que necesitÃƒÂ¡s.
               </p>
               <Link
                 href="/"
-                className="btn btn-primary mt-4 inline-flex hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2 focus:ring-offset-white"
+                prefetch={false}
+                className="btn btn-secondary mt-4 inline-flex"
               >
                 Ver productos
               </Link>
@@ -202,175 +218,155 @@ const CartPage = () => {
   return (
     <>
       <CartHeader />
-      <main className="min-h-[60vh] bg-[var(--color-neutral-200)]/30">
-        <div className="container pt-20 pb-10 md:pt-24">
-          <div className="mb-4">
-            <p className="py-10 text-sm text-[var(--color-neutral-700)]">
-              {cartDescription}
-            </p>
-          </div>
+      <main className="min-h-[60vh]">
+        <div className="container pt-10 pb-12 md:pt-14 px-6">
+          <p className="muted mb-6">{cartDescription}</p>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
+          <div className="card card--flat p-6 lg:p-10 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
+            {/* ====== LISTA (Mobile: cards / Desktop: tabla) ====== */}
             <section aria-labelledby="cart-items-heading" className="space-y-4">
               <header>
-                <h2
-                  id="cart-items-heading"
-                  className="text-lg font-semibold text-[var(--color-primary)]"
-                >
+                <h2 id="cart-items-heading" className="text-lg font-bold">
                   Productos ({count})
                 </h2>
               </header>
 
+              {/* Mobile cards */}
               <div className="space-y-4 md:hidden">
                 {enrichedItems.map(({ product, qty, subtotal }) => (
-                  <article
-                    key={product.id}
-                    className="rounded-xl border border-[var(--color-neutral-200)] bg-white p-4 shadow-sm transition hover:shadow-md"
-                  >
+                  <article key={product.id} className="card card--flat p-4">
                     <div className="flex items-center gap-4">
-                      <div className="relative h-20 w-20 overflow-hidden rounded-lg bg-[var(--color-neutral-200)]">
+                      <div
+                        className="media"
+                        style={{ width: 80, aspectRatio: "4 / 3" }}
+                      >
                         <ProductImage
                           src={product.image}
                           alt={product.name}
-                          fill
+                          width={80}
+                          height={60}
                           sizes="80px"
-                          className="object-cover"
                         />
                       </div>
                       <div className="flex-1 space-y-1">
                         <Link
-                          href={`/product/${product.slug}`}
-                          className="line-clamp-2 text-sm font-medium text-[var(--color-primary)] hover:text-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2 focus:ring-offset-white"
+                          href={`/products/${product.id}`}
+                          prefetch={false}
+                          className="title text-sm"
                         >
                           {product.name}
                         </Link>
-                        <p className="text-sm text-[var(--color-primary)]">
+                        <p className="muted text-sm">
                           {formatCurrency(product.price)}
                         </p>
                       </div>
                     </div>
+
                     <div className="mt-4 flex items-center justify-between gap-4">
-                      <label className="flex items-center gap-2 text-sm font-medium text-[var(--color-primary)]">
-                        Cantidad
-                        <select
-                          aria-label={`Cantidad para ${product.name}`}
-                          className="w-16 rounded-md border border-[var(--color-neutral-200)] px-2 py-1 text-center text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-                          value={qty}
-                          onChange={(event) =>
-                            setQty(product.id, Number(event.target.value))
-                          }
+                      <div className="flex items-center gap-3">
+                        <label
+                          className="sr-only"
+                          htmlFor={`qty-m-${product.id}`}
                         >
-                          {quantityOptions.map((option) => (
-                            <option key={option} value={option}>
-                              {option}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <p className="text-lg font-semibold text-[var(--color-primary)]">
+                          Cantidad para {product.name}
+                        </label>
+                        <QtyStepper
+                          value={qty}
+                          onChange={(v) => setQty(product.id, v)}
+                          label={`Cantidad para ${product.name}`}
+                        />
+                      </div>
+                      <p className="text-lg font-extrabold">
                         {formatCurrency(subtotal)}
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveRequest(product)}
-                      aria-label={`Eliminar ${product.name}`}
-                      className="btn mt-4 bg-[var(--color-neutral-200)] text-[var(--color-primary)] hover:brightness-95"
-                    >
-                      Eliminar
-                    </button>
+
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveRequest(product)}
+                        aria-label={`Eliminar ${product.name}`}
+                        className="icon-btn"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="w-4 h-4" aria-hidden />
+                      </button>
+                    </div>
                   </article>
                 ))}
               </div>
 
+              {/* Desktop table */}
               <div className="hidden md:block">
-                <table className="w-full border-separate border-spacing-y-3">
+                <table className="table">
                   <thead>
-                    <tr className="text-left text-sm font-semibold text-[var(--color-primary)]">
-                      <th scope="col" className="px-4 py-2">
-                        Producto
-                      </th>
-                      <th scope="col" className="px-4 py-2">
-                        Precio unitario
-                      </th>
-                      <th scope="col" className="px-4 py-2">
-                        Cantidad
-                      </th>
-                      <th scope="col" className="px-4 py-2">
-                        Subtotal
-                      </th>
-                      <th scope="col" className="px-4 py-2 text-right">
-                        Accion
-                      </th>
+                    <tr>
+                      <th>Producto</th>
+                      <th className="cell-right">Precio unitario</th>
+                      <th className="cell-center">Cantidad</th>
+                      <th className="cell-right">Subtotal</th>
+                      <th className="cell-center">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
                     {enrichedItems.map(({ product, qty, subtotal }) => (
-                      <tr
-                        key={product.id}
-                        className="rounded-xl border border-[var(--color-neutral-200)] bg-white p-4 shadow-sm transition hover:shadow-md"
-                      >
-                        <td className="rounded-l-xl px-4 py-3">
+                      <tr key={product.id}>
+                        <td>
                           <div className="flex items-center gap-4">
-                            <div className="relative h-[72px] w-[72px] overflow-hidden rounded-lg bg-[var(--color-neutral-200)]">
+                            <div
+                              className="media"
+                              style={{ width: 72, aspectRatio: "4 / 3" }}
+                            >
                               <ProductImage
                                 src={product.image}
                                 alt={product.name}
-                                fill
+                                width={72}
+                                height={54}
                                 sizes="72px"
-                                className="object-cover"
                               />
                             </div>
                             <div>
                               <Link
-                                href={`/product/${product.slug}`}
-                                className="line-clamp-2 text-sm font-medium text-[var(--color-primary)] hover:text-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2 focus:ring-offset-white"
+                                href={`/products/${product.id}`}
+                                prefetch={false}
+                                className="title text-sm"
                               >
                                 {product.name}
                               </Link>
-                              <p className="mt-1 text-sm text-[var(--color-primary)]">
+                              <p className="muted text-sm">
                                 {formatCurrency(product.price)}
                               </p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-[var(--color-primary)]">
+
+                        <td className="cell-right nowrap">
                           {formatCurrency(product.price)}
                         </td>
-                        <td className="px-4 py-3">
-                          <label
-                            className="sr-only"
-                            htmlFor={`qty-${product.id}`}
-                          >
-                            Cantidad para {product.name}
-                          </label>
-                          <select
-                            id={`qty-${product.id}`}
-                            aria-label={`Cantidad para ${product.name}`}
-                            className="w-16 rounded-md border border-[var(--color-neutral-200)] px-2 py-1 text-center text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
-                            value={qty}
-                            onChange={(event) =>
-                              setQty(product.id, Number(event.target.value))
-                            }
-                          >
-                            {quantityOptions.map((option) => (
-                              <option key={option} value={option}>
-                                {option}
-                              </option>
-                            ))}
-                          </select>
+
+                        <td className="cell-center">
+                          <div className="flex items-center justify-center gap-3">
+                            <QtyStepper
+                              value={qty}
+                              onChange={(v) => setQty(product.id, v)}
+                              label={`Cantidad para ${product.name}`}
+                            />
+                          </div>
                         </td>
-                        <td className="px-4 py-3 text-lg font-semibold text-[var(--color-primary)]">
+
+                        <td className="cell-right nowrap text-base font-extrabold">
                           {formatCurrency(subtotal)}
                         </td>
-                        <td className="rounded-r-xl px-4 py-3 text-right">
+
+                        <td className="cell-center">
                           <button
                             type="button"
                             onClick={() => handleRemoveRequest(product)}
                             aria-label={`Eliminar ${product.name}`}
-                            className="btn bg-[var(--color-neutral-200)] text-[var(--color-primary)] hover:brightness-95"
+                            className="icon-btn"
+                            title="Eliminar"
                           >
-                            Eliminar
+                            <Trash2 className="w-4 h-4" aria-hidden />
                           </button>
                         </td>
                       </tr>
@@ -380,35 +376,34 @@ const CartPage = () => {
               </div>
             </section>
 
-            <aside className="lg:sticky lg:top-[120px]">
-              <div className="rounded-xl border border-[var(--color-neutral-200)] bg-white p-5 shadow-sm">
-                <h2 className="text-lg font-semibold text-[var(--color-primary)]">
-                  Resumen
-                </h2>
-                <p className="text-sm text-[var(--color-neutral-700)]">
+            {/* ====== RESUMEN ====== */}
+            <aside className="lg:sticky lg:top-[96px]">
+              <div className="card card--flat p-5 lg:p-6">
+                <h2 className="text-lg font-bold">Resumen</h2>
+                <p className="muted">
                   Total ({count} {count === 1 ? "item" : "items"})
                 </p>
-                <p className="text-xl font-bold text-[var(--color-primary)]">
+                <p className="text-2xl font-extrabold mt-1">
                   {formatCurrency(total)}
                 </p>
                 <button
                   type="button"
-                  className="btn btn-primary mt-3 w-full hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2 focus:ring-offset-white"
+                  className="btn btn-primary mt-4 w-full"
                   onClick={() => {}}
                 >
                   Finalizar compra
                 </button>
-                <button
-                  type="button"
-                  className="btn mt-2 w-full bg-[var(--color-neutral-200)] text-[var(--color-primary)] hover:brightness-95"
-                  onClick={handleClearRequest}
-                >
+                <Link href="/" prefetch={false} className="btn btn-secondary mt-2 w-full">
+                  Seguir comprando
+                </Link>
+                <button type="button" className="btn mt-2 w-full" onClick={handleClearRequest}>
                   Vaciar carrito
                 </button>
               </div>
-              <div className="mt-4 rounded-xl border border-[var(--color-neutral-200)] bg-white p-5 text-sm text-[var(--color-neutral-700)] shadow-sm">
-                <p>
-                  Necesitas ayuda? Escribinos y nuestro equipo te acompanara en
+
+              <div className="card card--flat p-5 mt-4">
+                <p className="muted text-sm">
+                  Ã‚Â¿NecesitÃƒÂ¡s ayuda? Escribinos y nuestro equipo te acompaÃƒÂ±a en
                   el proceso de compra.
                 </p>
               </div>
@@ -427,11 +422,4 @@ const CartPage = () => {
       />
     </>
   );
-};
-
-export default CartPage;
-
-
-
-
-
+}

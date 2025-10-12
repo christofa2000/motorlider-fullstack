@@ -1,4 +1,5 @@
 
+import { buildAdminUnauthorizedResponse, isAdminAuthenticated } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 
 export const config = {
@@ -6,17 +7,16 @@ export const config = {
 };
 
 export function middleware(req: NextRequest) {
-  const adminToken = req.cookies.get("admin_token")?.value;
   const { pathname } = req.nextUrl;
 
-  if (pathname.startsWith("/admin/login") && adminToken === process.env.ADMIN_TOKEN) {
+  // Si está en login y ya está autenticado, redirigir al dashboard
+  if (pathname.startsWith("/admin/login") && isAdminAuthenticated(req)) {
     return NextResponse.redirect(new URL("/admin/products", req.url));
   }
 
-  if (!pathname.startsWith("/admin/login")) {
-    if (adminToken !== process.env.ADMIN_TOKEN) {
-      return NextResponse.redirect(new URL("/admin/login", req.url));
-    }
+  // Si no está en login y no está autenticado, redirigir al login
+  if (!pathname.startsWith("/admin/login") && !isAdminAuthenticated(req)) {
+    return buildAdminUnauthorizedResponse(req);
   }
 
   return NextResponse.next();

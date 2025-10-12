@@ -1,7 +1,8 @@
 "use client";
 
-import { MouseEvent } from "react";
+import type { ComponentType, MouseEvent } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Car, Wrench, Octagon } from "lucide-react";
 
 import { categories as defaultCategories } from "../data/categories";
 import type { Category } from "../types";
@@ -36,41 +37,38 @@ const CategoryBar = ({ items = defaultCategories }: CategoryBarProps) => {
   };
 
   const baseClasses =
-    "whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2 focus:ring-offset-[var(--color-neutral-700)]";
+    "pill focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2 focus:ring-offset-[var(--color-neutral-700)]";
+
+  const iconBySlug: Record<string, ComponentType<{ className?: string; size?: number }>> = {
+    motor: Car,
+    suspension: Wrench,
+    frenos: Octagon,
+  };
 
   return (
-    <nav
-      aria-label="Categorías destacadas"
-      className="border-b border-[var(--color-neutral-200)] bg-[var(--color-neutral-700)] text-[var(--color-contrast)]"
-    >
-      <div className="mx-auto flex max-w-6xl items-center gap-3 overflow-x-auto px-4 py-3">
+    <nav aria-label="Categorías destacadas" className="category-bar">
+      <div className="category-scroller px-4 py-2 sm:px-6 sm:py-3 md:px-8">
         <button
           type="button"
           onClick={(event) => handleClick(event)}
-          className={`${baseClasses} ${
-            currentCategory === ""
-              ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-contrast)]"
-              : "border-transparent hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)]"
-          }`}
+          className={`${baseClasses} ${currentCategory === "" ? "pill--active" : ""}`}
           aria-pressed={currentCategory === ""}
         >
-          Todas
+          <span>Todas</span>
         </button>
         {items.map((category) => {
           const active = category.slug === currentCategory;
+          const Icon = iconBySlug[category.slug] ?? Car;
           return (
             <button
               key={category.id}
               type="button"
               onClick={(event) => handleClick(event, category.slug)}
-              className={`${baseClasses} ${
-                active
-                  ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-contrast)]"
-                  : "border-transparent hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)]"
-              }`}
+              className={`${baseClasses} ${active ? "pill--active" : ""}`}
               aria-pressed={active}
             >
-              {category.name}
+              <Icon size={16} aria-hidden className="mr-2 opacity-90" />
+              <span>{category.name}</span>
             </button>
           );
         })}
