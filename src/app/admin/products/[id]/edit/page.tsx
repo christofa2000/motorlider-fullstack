@@ -1,41 +1,85 @@
+// src/app/products/[id]/edit/page.tsx
 import { prisma } from "@/lib/db";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import ProductForm from "../../_components/product-form";
 
-async function EditProductPage({
+export const runtime = "nodejs"; // usando Prisma en Server Component
+
+export async function generateMetadata({
   params,
-}: { params: { id: string } | Promise<{ id: string }> }) {
-  const { id } = params instanceof Promise ? await params : params;
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
 
   const product = await prisma.product.findUnique({
     where: { id },
+    select: { name: true, slug: true },
+  });
+
+  if (!product) {
+    return { title: "Producto no encontrado | Motorlider" };
+  }
+
+  return {
+    title: `${product.name} | Motorlider`,
+    alternates: { canonical: `/products/${product.slug}` },
+  };
+}
+
+export default async function ProductDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+
+  const product = await prisma.product.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      brand: true,
+      price: true, // en centavos
+      image: true,
+      stock: true,
+      category: { select: { id: true, name: true, slug: true } },
+      createdAt: true,
+      updatedAt: true,
+    },
   });
 
   if (!product) {
     notFound();
   }
 
-  const categories = await prisma.category.findMany({
-    orderBy: { name: "asc" },
-  });
-
   return (
-    <div className="container mx-auto p-4 py-10">
-      <div className="mx-auto max-w-2xl">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Edit Product</h1>
-          <Link href="/admin/products" className="btn">
-            Back to Products
-          </Link>
-        </div>
-        <div className="rounded-xl border border-[var(--color-neutral-200)] bg-white p-5 shadow-sm">
-          <ProductForm categories={categories} product={product} />
+    <main className="max-w-5xl mx-auto p-6">
+      <div className="flex gap-8">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={product.image}
+          alt={product.name}
+          className="w-72 h-72 object-cover rounded-xl border"
+        />
+        <div className="space-y-2">
+          <h1 className="text-2xl font-semibold">{product.name}</h1>
+          {product.brand && (
+            <p className="text-sm text-gray-500">Marca: {product.brand}</p>
+          )}
+          <p className="text-lg">
+            Precio:{" "}
+            {(product.price / 100).toLocaleString("es-AR", {
+              style: "currency",
+              currency: "ARS",
+            })}
+          </p>
+          <p className="text-sm text-gray-500">
+            Categoría: {product.category?.name ?? "—"}
+          </p>
+          <p className="text-sm">Stock: {product.stock}</p>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
-
-export default EditProductPage as unknown as (props: { params: Promise<{ id: string }> }) => ReturnType<typeof EditProductPage>;
-

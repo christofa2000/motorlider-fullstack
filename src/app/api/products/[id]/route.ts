@@ -1,21 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
+// src/app/api/products/[id]/route.ts
 import { prisma } from "@/lib/db";
 import { productUpdateSchema } from "@/lib/validators/product";
+import { Prisma } from "@prisma/client";
+import { NextRequest, NextResponse } from "next/server";
 
-export const runtime = "nodejs" as const;
+export const runtime = "nodejs";
 
-type ProductRouteParams = { id: string | string[] };
-type RouteCtx = { params: ProductRouteParams | Promise<ProductRouteParams> };
+/** Contexto que Next 15 espera: params es una Promise */
+type Ctx = { params: Promise<{ id: string }> };
 
-/** Normaliza params.id a string siempre (Next.js 15: params puede ser Promise) */
-async function getIdFromCtx(ctx: RouteCtx): Promise<string> {
-  const params = await ctx.params;
-  const raw = params?.id;
-  return Array.isArray(raw) ? String(raw[0]) : String(raw);
+/** Normaliza params.id a string (maneja Promise en Next 15) */
+async function getIdFromCtx(ctx: Ctx): Promise<string> {
+  const { id } = await ctx.params;
+  return Array.isArray(id) ? String(id[0]) : String(id);
 }
 
-export async function GET(_req: NextRequest, ctx: RouteCtx) {
+export async function GET(_req: NextRequest, ctx: Ctx) {
   try {
     const id = await getIdFromCtx(ctx);
     const product = await prisma.product.findUnique({
@@ -40,7 +40,7 @@ export async function GET(_req: NextRequest, ctx: RouteCtx) {
   }
 }
 
-export async function PATCH(req: NextRequest, ctx: RouteCtx) {
+export async function PATCH(req: NextRequest, ctx: Ctx) {
   try {
     const id = await getIdFromCtx(ctx);
 
@@ -115,7 +115,7 @@ export async function PATCH(req: NextRequest, ctx: RouteCtx) {
   }
 }
 
-export async function DELETE(req: NextRequest, ctx: RouteCtx) {
+export async function DELETE(req: NextRequest, ctx: Ctx) {
   try {
     const id = await getIdFromCtx(ctx);
 
