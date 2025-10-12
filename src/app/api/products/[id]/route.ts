@@ -1,17 +1,23 @@
+import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { productUpdateSchema } from "@/lib/validators/product";
-import { Prisma } from "@prisma/client";
-import { NextRequest, NextResponse } from "next/server";
 
-/** Normaliza params.id a string siempre */
-function getIdFromCtx(ctx: any): string {
-  const raw = ctx?.params?.id;
+export const runtime = "nodejs" as const;
+
+type ProductRouteParams = { id: string | string[] };
+type RouteCtx = { params: ProductRouteParams | Promise<ProductRouteParams> };
+
+/** Normaliza params.id a string siempre (Next.js 15: params puede ser Promise) */
+async function getIdFromCtx(ctx: RouteCtx): Promise<string> {
+  const params = await ctx.params;
+  const raw = params?.id;
   return Array.isArray(raw) ? String(raw[0]) : String(raw);
 }
 
-export async function GET(_req: NextRequest, ctx: any) {
+export async function GET(_req: NextRequest, ctx: RouteCtx) {
   try {
-    const id = getIdFromCtx(ctx);
+    const id = await getIdFromCtx(ctx);
     const product = await prisma.product.findUnique({
       where: { id },
       include: { category: true },
@@ -34,9 +40,9 @@ export async function GET(_req: NextRequest, ctx: any) {
   }
 }
 
-export async function PATCH(req: NextRequest, ctx: any) {
+export async function PATCH(req: NextRequest, ctx: RouteCtx) {
   try {
-    const id = getIdFromCtx(ctx);
+    const id = await getIdFromCtx(ctx);
 
     const adminToken = req.cookies.get("admin_token")?.value;
     if (adminToken !== process.env.ADMIN_TOKEN) {
@@ -109,9 +115,9 @@ export async function PATCH(req: NextRequest, ctx: any) {
   }
 }
 
-export async function DELETE(req: NextRequest, ctx: any) {
+export async function DELETE(req: NextRequest, ctx: RouteCtx) {
   try {
-    const id = getIdFromCtx(ctx);
+    const id = await getIdFromCtx(ctx);
 
     const adminToken = req.cookies.get("admin_token")?.value;
     if (adminToken !== process.env.ADMIN_TOKEN) {
