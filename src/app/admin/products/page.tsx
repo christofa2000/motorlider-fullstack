@@ -1,42 +1,53 @@
-// app/admin/products/page.tsx (o la ruta equivalente)
+// app/admin/products/page.tsx
 import { prisma } from "@/lib/db";
 import { unstable_noStore as noStore } from "next/cache";
 import { Suspense } from "react";
 import ProductsPageClient from "./_components/products-page-client";
 
+export const runtime = "nodejs"; // Prisma requiere Node.js (no Edge)
+// export const dynamic = "force-dynamic"; // Alternativa a noStore(): descomenta si preferís
+
 export default async function ProductsPage() {
   // Evita cache en Admin (siempre datos frescos)
   noStore();
 
-  const categories = await prisma.category.findMany({
-    orderBy: { name: "asc" },
-    select: { id: true, name: true, slug: true, createdAt: true, updatedAt: true },
-  });
+  try {
+    const categories = await prisma.category.findMany({
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
 
-  return (
-    <section className="container px-6 py-8 lg:py-10">
-      {/* Topbar opcional (si no lo maneja el layout de Admin) */}
-      {/* <header className="card card--flat p-3 md:p-4 mb-6">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <h1 className="text-xl md:text-2xl font-bold">Productos</h1>
-          <div className="flex items-center gap-2">
-            <input className="input w-64" placeholder="Buscar productos…" aria-label="Buscar productos" />
-            <Link href="/admin/products/new" prefetch={false} className="btn btn-primary">Nuevo producto</Link>
+    return (
+      <section className="container px-6 py-8 lg:py-10">
+        <Suspense
+          fallback={
+            <div className="card card--flat p-8 text-center">
+              <p className="muted">Cargando productos…</p>
+            </div>
+          }
+        >
+          <div className="card p-6 lg:p-10">
+            <ProductsPageClient categories={categories} />
           </div>
-        </div>
-      </header> */}
-
-      <Suspense
-        fallback={
-          <div className="card card--flat p-8 text-center">
-            <p className="muted">Cargando productos…</p>
-          </div>
-        }
-      >
+        </Suspense>
+      </section>
+    );
+  } catch (err) {
+    console.error("[ADMIN_PRODUCTS_PAGE]", err);
+    return (
+      <section className="container px-6 py-8 lg:py-10">
         <div className="card p-6 lg:p-10">
-          <ProductsPageClient categories={categories} />
+          <p className="text-sm text-red-600">
+            Ocurrió un error al cargar las categorías. Intenta nuevamente.
+          </p>
         </div>
-      </Suspense>
-    </section>
-  );
+      </section>
+    );
+  }
 }

@@ -1,15 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
+// src/app/api/products/route.ts
 import { prisma } from "@/lib/db";
 import { productCreateSchema } from "@/lib/validators/product";
+import { Prisma } from "@prisma/client";
+import { revalidatePath } from "next/cache";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-export const runtime = "nodejs" as const;
+export const runtime = "nodejs"; // ✔️ App Router soportado. No usar `export const config = {...}`
 
 const getProductsSchema = z.object({
   q: z.string().optional(),
-  // AHORA 'cat' es el SLUG de la categoría, no el ID.
+  // `cat` llega como SLUG de categoría
   cat: z.string().optional(),
   page: z.coerce.number().int().min(1).optional().default(1),
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(10),
@@ -19,16 +20,16 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const query = Object.fromEntries(searchParams.entries());
-    const parsedQuery = getProductsSchema.safeParse(query);
+    const parsed = getProductsSchema.safeParse(query);
 
-    if (!parsedQuery.success) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { ok: false, error: parsedQuery.error.format() },
+        { ok: false, error: parsed.error.format() },
         { status: 400 }
       );
     }
 
-    const { q, cat, page, pageSize } = parsedQuery.data;
+    const { q, cat, page, pageSize } = parsed.data;
 
     const where: Prisma.ProductWhereInput = {};
     if (q) {
@@ -37,18 +38,18 @@ export async function GET(req: NextRequest) {
         { brand: { contains: q, mode: "insensitive" } },
       ];
     }
-
-    // Filtramos por SLUG de categoría
     if (cat) {
       where.category = { slug: cat };
     }
 
-    const [products, total] = await prisma.$transaction([
+    const skip = (page - 1) * pageSize;
+
+    const [items, total] = await prisma.$transaction([
       prisma.product.findMany({
         where,
-        include: { category: true },
+        include: { category: { select: { id: true, name: true, slug: true } } },
         orderBy: { createdAt: "desc" },
-        skip: (page - 1) * pageSize,
+        skip,
         take: pageSize,
       }),
       prisma.product.count({ where }),
@@ -56,17 +57,12 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      data: {
-        items: products,
-        total,
-        page,
-        pageSize,
-      },
+      data: { items, total, page, pageSize },
     });
-  } catch (error) {
-    console.error("[PRODUCTS_GET]", error);
+  } catch (err) {
+    console.error("[PRODUCTS_GET]", err);
     return NextResponse.json(
-      { ok: false, error: "Internal Server Error" },
+      { ok: false, error: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }
@@ -74,59 +70,57 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    // Auth simple por cookie
     const adminToken = req.cookies.get("admin_token")?.value;
     if (adminToken !== process.env.ADMIN_TOKEN) {
       return NextResponse.json(
-        { ok: false, error: "Unauthorized" },
+        { ok: false, error: "UNAUTHORIZED" },
         { status: 401 }
       );
     }
 
     const body = await req.json();
-    const parsedBody = productCreateSchema.safeParse(body);
-
-    if (!parsedBody.success) {
+    const parsed = productCreateSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { ok: false, error: parsedBody.error.format() },
+        { ok: false, error: parsed.error.format() },
         { status: 400 }
       );
     }
 
-    const { slug } = parsedBody.data;
-    const existingProduct = await prisma.product.findUnique({
-      where: { slug },
-    });
+    const { slug, categoryId, image, ...rest } = parsed.data;
 
-    if (existingProduct) {
+    // Slug único
+    const exists = await prisma.product.findUnique({ where: { slug } });
+    if (exists) {
       return NextResponse.json(
-        { ok: false, error: "A product with this slug already exists." },
+        { ok: false, error: "SLUG_EXISTS" },
         { status: 409 }
       );
     }
 
-    // Sanitizar URL de imagen
-    const imageUrl = parsedBody.data.image?.trim() || "/images/products/placeholder.png";
+    // Sanitiza imagen
+    const imageUrl = image?.trim() || "/images/products/placeholder.png";
 
-    const { categoryId, ...rest } = parsedBody.data;
-
-    const product = await prisma.product.create({
+    const created = await prisma.product.create({
       data: {
         ...rest,
+        slug,
         image: imageUrl,
         category: { connect: { id: categoryId } },
       },
-      include: { category: true },
+      include: { category: { select: { id: true, name: true, slug: true } } },
     });
 
-    // Revalida la home para que aparezca al instante
+    // Revalidar la home para que aparezca el nuevo producto
     revalidatePath("/");
 
-    return NextResponse.json({ ok: true, data: product }, { status: 201 });
-  } catch (error) {
-    console.error("[PRODUCTS_POST]", error);
+    return NextResponse.json({ ok: true, data: created }, { status: 201 });
+  } catch (err) {
+    console.error("[PRODUCTS_POST]", err);
     return NextResponse.json(
-      { ok: false, error: "Internal Server Error" },
-      { status: 500 }
+      { ok: false, error: "INVALID_BODY" },
+      { status: 400 }
     );
   }
 }
