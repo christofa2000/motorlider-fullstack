@@ -1,14 +1,8 @@
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 import type { Product } from "@/types";
 import { headers } from "next/headers";
-import {
-  CategoryBar,
-  Footer,
-  Navbar,
-  ProductCard,
-  SearchBar,
-} from "../components";
+import { CategoryBar, Footer, Navbar, ProductCard, SearchBar } from "../components";
 import { categories, categoryBySlug } from "../data/categories";
 import { mockProducts } from "../data/products";
 
@@ -122,7 +116,8 @@ const HomePage = async ({ searchParams }: HomePageProps) => {
     }
 
     const res = await fetch(`${base}/api/products?${searchQuery.toString()}`, {
-      cache: "no-store",
+      cache: "force-cache",
+      next: { revalidate: 60 },
     });
 
     if (res.ok) {
@@ -165,15 +160,7 @@ const HomePage = async ({ searchParams }: HomePageProps) => {
   const headingText = getHeading(query, normalizedQuery, categorySlug);
 
   return (
-    <div
-      className="min-h-screen"
-      style={{
-        backgroundImage: "url(/images/fondo5.jpg)",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundAttachment: "fixed",
-      }}
-    >
+    <div className="min-h-screen">
       <Navbar />
       <div className="bg-[var(--color-primary)] px-4 pb-3 pt-2 md:hidden">
         <SearchBar className="max-w-none" initialValue={query} />
@@ -182,31 +169,31 @@ const HomePage = async ({ searchParams }: HomePageProps) => {
       <main className="py-8">
         <section className="container flex flex-col gap-6">
           <header className="space-y-2">
-            <h1 className="text-2xl font-semibold text-slate-900">
+            <h1 className="text-2xl font-semibold text-[var(--color-contrast)]">
               {headingText}
             </h1>
             {hasQuery || categorySlug ? (
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-[var(--color-neutral-300)]">
                 Encontramos {products.length}{" "}
                 {products.length === 1 ? "producto" : "productos"} que coinciden
                 con tu busqueda.
               </p>
             ) : (
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-[var(--color-neutral-300)]">
                 Descubri los repuestos mas buscados por nuestros clientes.
               </p>
             )}
           </header>
 
           {products.length === 0 ? (
-            <div className="rounded-xl border border-[var(--color-neutral-200)] bg-white p-8 text-center shadow-sm">
+            <div className="card card--flat p-8 text-center">
               {getEmptyStateDescription(query, selectedCategory?.name)}
-              <p className="mt-2 text-sm text-[var(--color-neutral-700)]">
+              <p className="mt-2 text-sm text-[var(--color-neutral-300)]">
                 Revisa la ortografia o proba con otra busqueda.
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
+            <div className="grid-products">
               {products.map((product, index) => (
                 <ProductCard
                   key={product.id}

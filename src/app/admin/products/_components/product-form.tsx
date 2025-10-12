@@ -1,14 +1,14 @@
 "use client";
 
+import SafeNextImage from "@/components/ui/SafeNextImage";
 import { useToast } from "@/hooks/useToast";
 import { slugify } from "@/lib/slugify"; // <- default import (más común)
 import {
-  ProductCreateData,
-  productCreateSchema,
+    ProductCreateData,
+    productCreateSchema,
 } from "@/lib/validators/product";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Category, Product } from "@prisma/client";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { ChangeEvent } from "react";
 import { useEffect, useState, useTransition } from "react";
@@ -170,17 +170,18 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
         <div>
           <label
             htmlFor="name"
-            className="block text-sm font-medium text-gray-700"
+            className="admin-label"
           >
-            Name
+            Nombre del producto
           </label>
           <input
             id="name"
             {...register("name")}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm"
+            className="admin-input"
+            placeholder="Ej: Amortiguador delantero"
           />
           {errors.name && (
-            <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+            <p className="mt-1 text-sm text-red-400">{errors.name.message}</p>
           )}
         </div>
 
@@ -188,19 +189,20 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
         <div>
           <label
             htmlFor="slug"
-            className="block text-sm font-medium text-gray-700"
+            className="admin-label"
           >
-            Slug
+            Slug (URL)
           </label>
           <div className="flex items-center space-x-2 mt-1">
             <input
               id="slug"
               {...register("slug")}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm"
+              className="admin-input"
+              placeholder="amortiguador-delantero"
             />
           </div>
           {errors.slug && (
-            <p className="mt-1 text-sm text-red-600">{errors.slug.message}</p>
+            <p className="mt-1 text-sm text-red-400">{errors.slug.message}</p>
           )}
         </div>
 
@@ -208,17 +210,18 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
         <div>
           <label
             htmlFor="brand"
-            className="block text-sm font-medium text-gray-700"
+            className="admin-label"
           >
-            Brand
+            Marca
           </label>
           <input
             id="brand"
             {...register("brand")}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm"
+            className="admin-input"
+            placeholder="Ej: Bosch, NGK, etc."
           />
           {errors.brand && (
-            <p className="mt-1 text-sm text-red-600">{errors.brand.message}</p>
+            <p className="mt-1 text-sm text-red-400">{errors.brand.message}</p>
           )}
         </div>
 
@@ -226,16 +229,16 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
         <div>
           <label
             htmlFor="categoryId"
-            className="block text-sm font-medium text-gray-700"
+            className="admin-label"
           >
-            Category
+            Categoría
           </label>
           <select
             id="categoryId"
             {...register("categoryId")}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm"
+            className="admin-input"
           >
-            <option value="">Select a category</option>
+            <option value="">Selecciona una categoría</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -243,7 +246,7 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
             ))}
           </select>
           {errors.categoryId && (
-            <p className="mt-1 text-sm text-red-600">
+            <p className="mt-1 text-sm text-red-400">
               {errors.categoryId.message}
             </p>
           )}
@@ -253,9 +256,9 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
         <div>
           <label
             htmlFor="price"
-            className="block text-sm font-medium text-gray-700"
+            className="admin-label"
           >
-            Price (in currency unit)
+            Precio (en pesos)
           </label>
           <Controller
             name="price"
@@ -269,12 +272,13 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
                   field.onChange(parseFloat(e.target.value) || 0)
                 }
                 step="0.01"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm"
+                className="admin-input"
+                placeholder="0.00"
               />
             )}
           />
           {errors.price && (
-            <p className="mt-1 text-sm text-red-600">{errors.price.message}</p>
+            <p className="mt-1 text-sm text-red-400">{errors.price.message}</p>
           )}
         </div>
 
@@ -282,9 +286,9 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
         <div>
           <label
             htmlFor="stock"
-            className="block text-sm font-medium text-gray-700"
+            className="admin-label"
           >
-            Stock
+            Stock disponible
           </label>
           <Controller
             name="stock"
@@ -297,70 +301,71 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
                 onChange={(e) =>
                   field.onChange(parseInt(e.target.value, 10) || 0)
                 }
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm"
+                className="admin-input"
+                placeholder="0"
               />
             )}
           />
           {errors.stock && (
-            <p className="mt-1 text-sm text-red-600">{errors.stock.message}</p>
+            <p className="mt-1 text-sm text-red-400">{errors.stock.message}</p>
           )}
         </div>
       </div>
 
       {/* Image */}
-      <div>
+      <div className="admin-panel">
         <label
           htmlFor="image"
-          className="block text-sm font-medium text-gray-700"
+          className="admin-label"
         >
-          Image URL
+          URL de la imagen
         </label>
         <input
           id="image"
           {...register("image")}
-          placeholder="/images/products/example.jpg"
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm"
+          placeholder="/images/products/example.jpg o https://..."
+          className="admin-input"
         />
 
-        {/* Vista previa con Next/Image + fallback */}
+        {/* Vista previa con SafeNextImage */}
         <div className="mt-4">
-          <Image
-            src={watchedImage?.trim() || FALLBACK_IMAGE}
+          <SafeNextImage
+            src={watchedImage}
             alt="Vista previa del producto"
             width={128}
             height={128}
-            className="h-32 w-32 rounded-md object-cover border border-gray-200"
-            onError={(e) => {
-              const img = e.currentTarget as HTMLImageElement;
-              if (!img.src.endsWith(FALLBACK_IMAGE)) {
-                img.src = FALLBACK_IMAGE;
-              }
-            }}
+            className="h-32 w-32 rounded-md object-cover border border-white/10"
+            fallbackSrc={FALLBACK_IMAGE}
           />
         </div>
 
-        <label className="block text-sm font-medium text-gray-700 mt-4">
-          Subir imagen
+        <label className="admin-label mt-4">
+          Subir imagen desde archivo
         </label>
-        <input type="file" accept="image/*" onChange={handleFileChange} />
-        {uploading && <p className="text-sm text-gray-500 mt-1">Subiendo...</p>}
+        <input 
+          type="file" 
+          accept="image/*" 
+          onChange={handleFileChange}
+          className="admin-input"
+        />
+        {uploading && <p className="text-sm text-zinc-400 mt-1">Subiendo...</p>}
         {errors.image && (
-          <p className="mt-1 text-sm text-red-600">{errors.image.message}</p>
+          <p className="mt-1 text-sm text-red-400">{errors.image.message}</p>
         )}
       </div>
 
       <div className="flex justify-end space-x-4">
-        <button type="button" onClick={() => router.back()} className="btn">
-          Cancel
+        <button type="button" onClick={() => router.back()} className="btn btn-secondary">
+          Cancelar
         </button>
         <button type="submit" disabled={isPending} className="btn btn-primary">
           {isPending
             ? product
-              ? "Updating..."
-              : "Creating..."
+              ? "Actualizando..."
+              : "Creando..."
             : product
-            ? "Update Product"
-            : "Create Product"}
+            ? "Actualizar Producto"
+            : "Crear Producto"}
         </button>
       </div>
     </form>

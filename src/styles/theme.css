@@ -1,41 +1,393 @@
-:root {
-  font-family: "Inter", sans-serif;
-  --color-primary: #1c1c1c;
-  --color-secondary: #d72638;
-  --color-neutral-700: #4f4f4f;
-  --color-neutral-200: #d9d9d9;
-  --color-accent: #005b96;
-  --color-contrast: #ffffff;
+/* ====== Performance toggles ====== */
+
+/* (A) Modo global más liviano: aplica en <body class="perf-lite"> */
+.perf-lite {
+  /* fondo simple: un solo gradiente linear */
+  background: linear-gradient(
+    to bottom,
+    var(--color-neutral-900),
+    var(--color-primary) 60%
+  ) !important;
 }
 
-body {
-  font-family: inherit;
+/* (B) Transiciones y sombras más baratas */
+.perf-lite .card {
+  box-shadow: var(--shadow-sm); /* menos blur */
+  transition: transform 160ms ease, border-color 160ms ease; /* quita filter/box-shadow extra */
+}
+.perf-lite .card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow); /* evita el lg */
 }
 
-.container {
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
+/* (C) Imágenes: menos “zoom” al hover (reduce repaints) */
+.perf-lite .media img {
+  transition: transform 160ms ease;
+}
+.perf-lite .card:hover .media img {
+  transform: scale(1.01); /* de 1.02 a 1.01 */
 }
 
+/* (D) Respeta usuarios con reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* (E) Evita will-change permanente (costoso) */
+.card,
+.media img,
 .btn {
+  will-change: auto;
+}
+
+/* ====== Base UI tokens-driven ====== */
+.card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-neutral-200);
+  background-color: rgba(255, 255, 255, 0.75);
+  transition: transform 160ms ease, border-color 160ms ease;
+}
+.card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-neutral-700);
+}
+
+.media {
+  position: relative;
+  width: 100%;
+  background: var(--color-neutral-200);
+}
+.media img {
+  object-fit: cover;
+}
+
+.title {
+  font-size: 1rem; /* text-base */
+  font-weight: 600; /* font-semibold */
+  color: #0f172a; /* slate-900 */
+}
+
+.price {
+  font-size: 1.125rem; /* text-lg */
+  font-weight: 700; /* font-bold */
+  color: var(--color-primary);
+}
+
+/* Badges: stock status */
+.badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: saturate(120%);
+}
+.badge-ok {
+  background-color: #16a34a;
+} /* green-600 */
+.badge-low {
+  background-color: #f59e0b;
+} /* amber-500 */
+.badge-out {
+  background-color: #dc2626;
+} /* red-600 */
+
+/* Products grid */
+.grid-products {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem; /* 4 */
+}
+@media (min-width: 768px) {
+  /* md */
+  .grid-products {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.5rem; /* 6 */
+  }
+}
+@media (min-width: 1024px) {
+  /* lg */
+  .grid-products {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* ====== Category Bar ====== */
+.category-bar {
+  background: color-mix(in oklab, var(--color-neutral-800), black 10%);
+  border-bottom: 1px solid var(--color-neutral-200);
+  color: var(--color-contrast);
+}
+
+.category-scroller {
+  display: flex;
+  gap: 0.75rem; /* 3 */
+  align-items: center;
+  overflow-x: auto;
+  max-width: 72rem; /* ~max-w-6xl */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.pill {
+  white-space: nowrap;
+  border-radius: 9999px; /* full */
+  border: 1px solid transparent;
+  padding: 0.5rem 1rem; /* py-2 px-4 */
+  font-size: 0.875rem; /* text-sm */
+  font-weight: 500; /* medium */
+  transition: transform 160ms ease, background-color 160ms ease,
+    border-color 160ms ease;
+  color: var(--color-contrast);
+  background: transparent;
+}
+.pill:hover {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+.pill--active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+/* ====== Tablas dark-premium ====== */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: color-mix(in oklab, var(--color-neutral-800) 94%, black 6%);
+}
+.table thead th {
+  text-align: left;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.2px;
+  color: var(--color-contrast);
+  background: color-mix(in oklab, var(--color-neutral-800), black 8%);
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.table tbody td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* ====== Celdas utilitarias ====== */
+.cell-right {
+  text-align: right;
+}
+.cell-center {
+  text-align: center;
+}
+.nowrap {
+  white-space: nowrap;
+}
+
+/* ====== Barra sticky móvil (acciones producto/carrito) ====== */
+.sticky-actions {
+  position: sticky;
+  bottom: 0;
+  inset-inline: 0;
+  background: color-mix(in oklab, var(--color-neutral-800) 92%, black 8%);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.75rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+/* ====== Icon buttons ====== */
+.icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 36px;
+  height: 36px;
   border-radius: 9999px;
-  font-weight: 600;
-  transition: filter 0.2s ease, transform 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  transition: transform 160ms ease, border-color 160ms ease,
+    background 160ms ease;
+}
+.icon-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
+/* ====== Stepper cantidad ====== */
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 0.25rem;
+}
+.stepper input {
+  width: 56px;
+  text-align: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-contrast);
+  padding: 0.4rem 0.2rem;
+}
+.stepper button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  transition: transform 160ms ease, border-color 160ms ease,
+    background 160ms ease;
+}
+.stepper button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ====== Empty state ====== */
+.empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--color-neutral-300);
+}
+.empty .title {
+  font-size: 1.25rem;
+  margin-top: 0.5rem;
+}
+
+/* ====== Flat/dark card variant + helpers ====== */
+.card--flat {
+  background: color-mix(in oklab, var(--color-neutral-800) 94%, black 6%);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--color-contrast);
+}
+.muted {
+  color: var(--color-neutral-400);
+}
+.input,
+.select,
+.textarea {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--color-contrast);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.75rem;
+}
+/* ====== CONTRASTE GLOBAL (Dark-Premium) ====== */
+:root {
+  --surface: color-mix(in oklab, var(--color-neutral-800) 94%, black 6%);
+  --surface-alt: color-mix(in oklab, var(--color-neutral-800) 90%, black 10%);
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --on-surface: var(--color-contrast);
+}
+
+/* Texto por defecto SIEMPRE claro (evita negros sobre gris) */
+html,
+body {
+  color: var(--on-surface);
+}
+
+/* Superficies unificadas (reemplaza bg-white/gray sueltos) */
+.surface {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.surface-alt {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* Borde utilitario unificado */
+.border-ui {
+  border: 1px solid var(--border);
+}
+.border-strong {
+  border: 1px solid var(--border-strong);
+}
+
+/* Títulos y texto siempre visibles */
+.h1,
+.h2,
+.h3,
+.title,
+.price {
+  color: var(--on-surface);
+}
+.muted {
+  color: var(--color-neutral-300);
+}
+
+/* Enlaces con buen contraste */
+a.link-strong {
+  color: color-mix(in oklab, var(--on-surface), var(--brand-warm) 28%);
+  text-decoration: none;
+  border-bottom: 1px dashed transparent;
+  transition: color var(--transition), border-color var(--transition);
+}
+a.link-strong:hover {
+  color: var(--on-surface);
+  border-color: var(--brand-warm);
+}
+
+/* Tablas en dark */
+.table {
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.table thead th {
+  background: color-mix(in oklab, var(--surface), black 6%);
+  color: var(--on-surface);
+}
+.table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Formularios contrastados */
+.input,
+.select,
+.textarea {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--on-surface);
+}
+
+/* Cards “flat” oscuras */
+.card {
+  color: var(--on-surface);
+}
+.card--flat {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+}
+
+/* Botones: sin filtros, alto contraste */
 .btn-primary {
-  background-color: var(--color-secondary);
-  color: var(--color-contrast);
-  padding: 0.5rem 1.25rem;
+  color: var(--on-surface);
 }
-
 .btn-secondary {
-  background-color: var(--color-accent);
-  color: var(--color-contrast);
-  padding: 0.5rem 1.25rem;
+  color: var(--on-surface);
 }

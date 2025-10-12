@@ -74,7 +74,8 @@ export const fetchProducts = cache(
 
     try {
       const response = await fetch(url.toString(), {
-        cache: "no-store",
+        cache: "force-cache",
+        next: { revalidate: 60 },
       });
 
       const payload = (await response.json()) as ProductsApiResponse;

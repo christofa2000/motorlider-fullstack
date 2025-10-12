@@ -8,22 +8,9 @@ jest.mock("next/server", () => ({
   NextRequest: class {},
 }));
 
-import { PrismaClient } from "@prisma/client";
-import fs from "node:fs";
-import path from "node:path";
-
+import { prisma } from "@/lib/db";
 import type { Product } from "@/types";
-
-let prisma: PrismaClient;
-
-const testDbPath = path.join(process.cwd(), "test", "api-test.db");
-const migrationPath = path.join(
-  process.cwd(),
-  "prisma",
-  "migrations",
-  "202510011116_init",
-  "migration.sql"
-);
+import { cleanupTestData, createTestCategory } from "../helpers/seed";
 
 type MockRequest = {
   json: () => Promise<unknown>;
@@ -43,48 +30,27 @@ const createRequest = (body?: unknown): MockRequest => ({
 });
 
 beforeAll(async () => {
-  process.env.DATABASE_URL = `file:${testDbPath.replace(/\\/g, "/")}`;
+  // Configurar token de admin para tests
   process.env.ADMIN_TOKEN = process.env.ADMIN_TOKEN ?? "test-admin-token";
 
-  if (fs.existsSync(testDbPath)) {
-    fs.rmSync(testDbPath);
-  }
-
-  const module = await import("@/lib/db");
-  prisma = module.prisma;
-
-  const migrationSql = fs.readFileSync(migrationPath, "utf8");
-  const statements = migrationSql
-    .split(/;\s*\n/)
-    .map((statement) => statement.trim())
-    .filter((statement) => statement.length > 0);
-
-  for (const statement of statements) {
-    await prisma.$executeRawUnsafe(statement);
-  }
+  // Limpieza inicial usando helper
+  await cleanupTestData();
 });
 
 afterAll(async () => {
   await prisma.$disconnect();
-  if (fs.existsSync(testDbPath)) {
-    fs.rmSync(testDbPath);
-  }
 });
 
 let motorCategoryId: string;
 let frenosCategoryId: string;
 
 beforeEach(async () => {
-  await prisma.product.deleteMany();
-  await prisma.category.deleteMany();
+  // Limpiar datos de tests anteriores usando helper
+  await cleanupTestData();
 
-  const motor = await prisma.category.create({
-    data: { name: "Motor", slug: "motor" },
-  });
-
-  const frenos = await prisma.category.create({
-    data: { name: "Frenos", slug: "frenos" },
-  });
+  // Crear categorías de test usando helper
+  const motor = await createTestCategory({ name: "Motor", slug: "motor" });
+  const frenos = await createTestCategory({ name: "Frenos", slug: "frenos" });
 
   motorCategoryId = motor.id;
   frenosCategoryId = frenos.id;

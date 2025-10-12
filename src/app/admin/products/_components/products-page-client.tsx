@@ -184,27 +184,27 @@ export default function ProductsPageClient({
     return (
       <>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="table">
+            <thead>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Name
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  Nombre
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Price
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  Precio
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                   Stock
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Category
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  Categoría
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Actions
+                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider">
+                  Acciones
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
+            <tbody>
               {Array.isArray(products) &&
                 products.map((product) => (
                   <tr key={product.id}>
@@ -223,15 +223,15 @@ export default function ProductsPageClient({
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <Link
                         href={`/admin/products/${product.id}/edit`}
-                        className="text-indigo-600 hover:text-indigo-900"
+                        className="text-[var(--color-accent)] hover:text-[var(--color-accent)]/80 transition-colors"
                       >
-                        Edit
+                        Editar
                       </Link>
                       <button
                         onClick={() => setProductToDelete(product)}
-                        className="ml-4 text-red-600 hover:text-red-900"
+                        className="ml-4 text-red-400 hover:text-red-300 transition-colors"
                       >
-                        Delete
+                        Eliminar
                       </button>
                     </td>
                   </tr>
@@ -241,13 +241,13 @@ export default function ProductsPageClient({
         </div>
 
         <div className="mt-4 flex items-center justify-between">
-          <p className="text-sm text-gray-700">
-            Showing{" "}
-            <span className="font-medium">{(page - 1) * pageSize + 1}</span> to{" "}
+          <p className="text-sm text-[var(--color-neutral-300)]">
+            Mostrando{" "}
+            <span className="font-medium">{(page - 1) * pageSize + 1}</span> a{" "}
             <span className="font-medium">
               {Math.min(page * pageSize, total)}
             </span>{" "}
-            of <span className="font-medium">{total}</span> results
+            de <span className="font-medium">{total}</span> resultados
           </p>
           <div className="flex space-x-2">
             <button
@@ -257,9 +257,9 @@ export default function ProductsPageClient({
                 )
               }
               disabled={page <= 1}
-              className="btn"
+              className="btn btn-secondary"
             >
-              Previous
+              Anterior
             </button>
             <button
               onClick={() =>
@@ -268,9 +268,9 @@ export default function ProductsPageClient({
                 )
               }
               disabled={page >= totalPages}
-              className="btn"
+              className="btn btn-secondary"
             >
-              Next
+              Siguiente
             </button>
           </div>
         </div>
@@ -281,46 +281,46 @@ export default function ProductsPageClient({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Products (Admin)</h1>
+        <h1 className="text-2xl font-bold text-[var(--color-contrast)]">Productos (Admin)</h1>
         <div className="flex items-center gap-4">
-          <Link href="/" className="btn">
-            Back to Home
+          <Link href="/" className="btn btn-secondary">
+            Volver al inicio
           </Link>
           <Link href="/admin/products/new" className="btn btn-primary">
-            New Product
+            Nuevo Producto
           </Link>
           <button
             onClick={handleLogout}
             disabled={isPending}
             className="btn btn-secondary"
           >
-            {isPending ? "Logging out..." : "Log Out"}
+            {isPending ? "Cerrando sesión..." : "Cerrar Sesión"}
           </button>
         </div>
       </div>
 
-      <div className="rounded-xl border border-[var(--color-neutral-200)] bg-white p-5 shadow-sm">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 mb-4">
-          <input
-            type="text"
-            placeholder="Search by name or brand..."
-            defaultValue={q}
-            onChange={(e) => handleFilterChange({ q: e.target.value })}
-            className="rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm"
-          />
-          <select
-            value={cat}
-            onChange={(e) => handleFilterChange({ cat: e.target.value })}
-            className="rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm"
-          >
-            <option value="">All Categories</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <div className="rounded-xl border border-[var(--color-neutral-200)] bg-[var(--panel)] p-5 shadow-sm">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 mb-4">
+            <input
+              type="text"
+              placeholder="Buscar por nombre o marca..."
+              defaultValue={q}
+              onChange={(e) => handleFilterChange({ q: e.target.value })}
+              className="admin-input"
+            />
+            <select
+              value={cat}
+              onChange={(e) => handleFilterChange({ cat: e.target.value })}
+              className="admin-input"
+            >
+              <option value="">Todas las categorías</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
         {renderContent()}
       </div>

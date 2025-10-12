@@ -1,7 +1,7 @@
 "use client";
 
-import Image, { ImageProps } from "next/image";
-import { useState } from "react";
+import { ImageProps } from "next/image";
+import SafeNextImage from "./ui/SafeNextImage";
 
 type ProductImageProps = Omit<ImageProps, "src" | "alt"> & {
   src: string;
@@ -12,19 +12,11 @@ type ProductImageProps = Omit<ImageProps, "src" | "alt"> & {
 const FALLBACK_SRC = "/images/products/placeholder.png";
 
 const ProductImage = ({ src, alt, className, ...props }: ProductImageProps) => {
-  const [currentSrc, setCurrentSrc] = useState(src || FALLBACK_SRC);
-
-  const handleError = () => {
-    if (currentSrc !== FALLBACK_SRC) {
-      setCurrentSrc(FALLBACK_SRC);
-    }
-  };
-
   return (
-    <Image
-      src={currentSrc || FALLBACK_SRC}
+    <SafeNextImage
+      src={src}
       alt={alt}
-      onError={handleError}
+      fallbackSrc={FALLBACK_SRC}
       className={className}
       {...props}
     />
