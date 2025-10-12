@@ -1,9 +1,11 @@
+import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { productCreateSchema } from "@/lib/validators/product";
-import { Prisma } from "@prisma/client";
-import { revalidatePath } from "next/cache";
-import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+
+export const runtime = "nodejs" as const;
 
 const getProductsSchema = z.object({
   q: z.string().optional(),
