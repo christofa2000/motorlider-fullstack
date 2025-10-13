@@ -6,3 +6,11 @@
   NODE_VERSION = "20"
   NPM_FLAGS = "--no-fund --no-audit"
 
+# 🔽 AÑADIR: asegura que el módulo 'cloudinary' se incluya en la función
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["cloudinary"]
+
+# (opcional pero recomendado) habilita el plugin oficial de Next en Netlify
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
