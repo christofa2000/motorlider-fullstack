@@ -74,7 +74,10 @@ export async function POST(req: NextRequest) {
     const adminToken = req.cookies.get("admin_token")?.value;
     if (adminToken !== process.env.ADMIN_TOKEN) {
       return NextResponse.json(
-        { ok: false, error: "UNAUTHORIZED" },
+        {
+          ok: false,
+          error: "No autorizado. Inicia sesión como administrador.",
+        },
         { status: 401 }
       );
     }
@@ -82,25 +85,47 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = productCreateSchema.safeParse(body);
     if (!parsed.success) {
+      console.error("Validation error:", parsed.error.format());
       return NextResponse.json(
-        { ok: false, error: parsed.error.format() },
+        {
+          ok: false,
+          error: "Datos del producto inválidos",
+          details: parsed.error.format(),
+        },
         { status: 400 }
       );
     }
 
     const { slug, categoryId, image, ...rest } = parsed.data;
 
+    // Verificar que la categoría existe
+    const categoryExists = await prisma.category.findUnique({
+      where: { id: categoryId },
+    });
+    if (!categoryExists) {
+      return NextResponse.json(
+        { ok: false, error: "La categoría seleccionada no existe" },
+        { status: 400 }
+      );
+    }
+
     // Slug único
     const exists = await prisma.product.findUnique({ where: { slug } });
     if (exists) {
       return NextResponse.json(
-        { ok: false, error: "SLUG_EXISTS" },
+        {
+          ok: false,
+          error:
+            "Ya existe un producto con ese slug. Cambia el nombre del producto.",
+        },
         { status: 409 }
       );
     }
 
-    // Sanitiza imagen
-    const imageUrl = image?.trim() || "/images/products/placeholder.png";
+    // Sanitiza imagen - el validador ya maneja el fallback
+    const imageUrl = image || "/images/products/placeholder.png";
+
+    console.log(`Creating product: ${rest.name} with image: ${imageUrl}`);
 
     const created = await prisma.product.create({
       data: {
@@ -115,12 +140,33 @@ export async function POST(req: NextRequest) {
     // Revalidar la home para que aparezca el nuevo producto
     revalidatePath("/");
 
+    console.log(`Product created successfully: ${created.id}`);
+
     return NextResponse.json({ ok: true, data: created }, { status: 201 });
   } catch (err) {
     console.error("[PRODUCTS_POST]", err);
+
+    // Manejar errores específicos de Prisma
+    if (err instanceof Prisma.PrismaClientKnownRequestError) {
+      if (err.code === "P2002") {
+        return NextResponse.json(
+          { ok: false, error: "Ya existe un producto con ese nombre o slug" },
+          { status: 409 }
+        );
+      }
+      if (err.code === "P2003") {
+        return NextResponse.json(
+          { ok: false, error: "La categoría seleccionada no existe" },
+          { status: 400 }
+        );
+      }
+    }
+
+    const message =
+      err instanceof Error ? err.message : "Error interno del servidor";
     return NextResponse.json(
-      { ok: false, error: "INVALID_BODY" },
-      { status: 400 }
+      { ok: false, error: `Error al crear producto: ${message}` },
+      { status: 500 }
     );
   }
 }

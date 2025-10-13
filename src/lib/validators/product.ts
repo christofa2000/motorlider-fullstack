@@ -5,21 +5,19 @@ import { z } from "zod";
  * - URLs absolutas (http/https)
  * - Rutas relativas que empiecen con /
  * - URLs de Cloudinary
- * - Valores vacíos (se convierten en undefined)
+ * - Valores vacíos (se convierten en placeholder)
  */
 const imageUrlSchema = z
   .string()
   .trim()
   .optional()
   .transform((val) => {
-    // Si está vacío después del trim, convertir a undefined
-    if (!val || val.length === 0) return undefined;
+    // Si está vacío después del trim, usar placeholder
+    if (!val || val.length === 0) return "/images/products/placeholder.png";
     return val;
   })
   .refine(
     (val) => {
-      if (val === undefined) return true; // Permitir undefined
-      
       // Validar que sea una URL válida
       return (
         val.startsWith("/") ||
@@ -29,7 +27,8 @@ const imageUrlSchema = z
       );
     },
     {
-      message: "La URL debe iniciar con / o http(s)://, o ser una URL de Cloudinary válida. Deja vacío para usar placeholder.",
+      message:
+        "La URL debe iniciar con / o http(s)://, o ser una URL de Cloudinary válida.",
     }
   );
 

@@ -1,0 +1,23 @@
+# .cursorrules — optimizado para React + Next.js + TypeScript
+
+ignore:
+  - node_modules/**
+  - .next/**
+  - public/**
+  - prisma/seed.ts
+  - src/mocks/**
+  - src/data/**
+  - src/tests/**
+
+focus:
+  - src/app/**
+  - src/components/**
+  - src/hooks/**
+
+assistant:
+  behavior: |
+    Responde de forma breve y directa.
+    No expliques a menos que se te pida.
+    Mantén las respuestas cortas y centradas en el código.
+    Trabaja principalmente con React, Next.js, TypeScript y Tailwind.
+    Ahorra tokens evitando analizar archivos irrelevantes.
