@@ -31,6 +31,12 @@ export default function ProductsPageClient({
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
+  const q = searchParams.get("q") || "";
+  // AHORA cat es SLUG, no id
+  const cat = searchParams.get("cat") || "";
+  const page = Number(searchParams.get("page")) || 1;
+  const pageSize = 10;
+
   const handleLogout = async () => {
     startTransition(async () => {
       try {
@@ -52,11 +58,6 @@ export default function ProductsPageClient({
     });
   };
 
-  const q = searchParams.get("q") || "";
-  const cat = searchParams.get("cat") || "";
-  const page = Number(searchParams.get("page")) || 1;
-  const pageSize = 10;
-
   useEffect(() => {
     const fetchProducts = async () => {
       setIsLoading(true);
@@ -67,16 +68,18 @@ export default function ProductsPageClient({
           pageSize: String(pageSize),
         });
         if (q) params.set("q", q);
-        if (cat) params.set("cat", cat);
+        if (cat) params.set("cat", cat); // slug
 
         const res = await fetch(`/api/products?${params.toString()}`);
         const payload = await res.json();
 
-        const items = (Array.isArray(payload?.data?.items)
-          ? payload.data.items
-          : Array.isArray(payload?.data)
-          ? payload.data
-          : []) as ProductWithCategory[];
+        const items = (
+          Array.isArray(payload?.data?.items)
+            ? payload.data.items
+            : Array.isArray(payload?.data)
+            ? payload.data
+            : []
+        ) as ProductWithCategory[];
 
         const totalFromApi =
           typeof payload?.data?.total === "number"
@@ -99,7 +102,6 @@ export default function ProductsPageClient({
           error instanceof Error ? error.message : "Unknown error";
         setError(message);
         toast({ title: "Error", description: message, variant: "destructive" });
-        // fallback seguro para no romper el render
         setProducts([]);
         setTotal(0);
       } finally {
@@ -113,7 +115,7 @@ export default function ProductsPageClient({
     const params = new URLSearchParams(searchParams);
     params.set("page", "1");
     if (newFilters.q !== undefined) params.set("q", newFilters.q);
-    if (newFilters.cat !== undefined) params.set("cat", newFilters.cat);
+    if (newFilters.cat !== undefined) params.set("cat", newFilters.cat); // slug
     router.push(`/admin/products?${params.toString()}`);
   };
 
@@ -125,17 +127,14 @@ export default function ProductsPageClient({
         const res = await fetch(`/api/products/${productToDelete.id}`, {
           method: "DELETE",
         });
-
-        if (!res.ok) {
-          throw new Error("Failed to delete product");
-        }
+        if (!res.ok) throw new Error("Failed to delete product");
 
         toast({
           title: "Success",
           description: "Product deleted successfully.",
         });
-        setProducts(products.filter((p) => p.id !== productToDelete.id));
-        setTotal(total - 1);
+        setProducts((prev) => prev.filter((p) => p.id !== productToDelete.id));
+        setTotal((t) => Math.max(0, t - 1));
       } catch (error) {
         console.error("[ADMIN_PRODUCT_DELETE]", error);
         toast({
@@ -151,14 +150,16 @@ export default function ProductsPageClient({
 
   const totalPages = Math.ceil(total / pageSize);
 
+  const inputClass =
+    "mt-1 w-full rounded-md border border-[var(--color-neutral-200)] bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]";
+  const selectClass = inputClass;
+
   const renderContent = () => {
-    if (isLoading) {
-      return <p>Loading...</p>;
-    }
+    if (isLoading) return <p className="text-slate-700">Loading...</p>;
 
     if (error) {
       return (
-        <div className="text-center text-red-500">
+        <div className="text-center text-red-600">
           <p>Error: {error}</p>
           <button
             onClick={() => window.location.reload()}
@@ -173,7 +174,7 @@ export default function ProductsPageClient({
     if (products.length === 0) {
       return (
         <div className="text-center">
-          <p>No products found.</p>
+          <p className="text-slate-700">No products found.</p>
           <Link href="/admin/products/new" className="btn btn-primary mt-2">
             Create New Product
           </Link>
@@ -205,43 +206,46 @@ export default function ProductsPageClient({
               </tr>
             </thead>
             <tbody>
-              {Array.isArray(products) &&
-                products.map((product) => (
-                  <tr key={product.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {product.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {formatCurrency(product.price / 100)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {product.stock}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {product.category?.name ?? "Sin categoria"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Link
-                        href={`/admin/products/${product.id}/edit`}
-                        className="text-[var(--color-accent)] hover:text-[var(--color-accent)]/80 transition-colors"
-                      >
-                        Editar
-                      </Link>
-                      <button
-                        onClick={() => setProductToDelete(product)}
-                        className="ml-4 text-red-400 hover:text-red-300 transition-colors"
-                      >
-                        Eliminar
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+              {products.map((product) => (
+                <tr key={product.id}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {product.name}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {
+                      formatCurrency(
+                        product.price
+                      ) /* product.price en centavos */
+                    }
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {product.stock}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {product.category?.name ?? "Sin categoría"}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <Link
+                      href={`/admin/products/${product.id}/edit`}
+                      className="text-[var(--color-accent)] hover:text-[var(--color-accent)]/80 transition-colors"
+                    >
+                      Editar
+                    </Link>
+                    <button
+                      onClick={() => setProductToDelete(product)}
+                      className="ml-4 text-red-500 hover:text-red-400 transition-colors"
+                    >
+                      Eliminar
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
 
         <div className="mt-4 flex items-center justify-between">
-          <p className="text-sm text-[var(--color-neutral-300)]">
+          <p className="text-sm text-[var(--color-neutral-700)]">
             Mostrando{" "}
             <span className="font-medium">{(page - 1) * pageSize + 1}</span> a{" "}
             <span className="font-medium">
@@ -281,7 +285,7 @@ export default function ProductsPageClient({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[var(--color-contrast)]">Productos (Admin)</h1>
+        <h1 className="text-2xl font-bold text-gray-700">Productos (Admin)</h1>
         <div className="flex items-center gap-4">
           <Link href="/" className="btn btn-secondary">
             Volver al inicio
@@ -299,28 +303,28 @@ export default function ProductsPageClient({
         </div>
       </div>
 
-        <div className="rounded-xl border border-[var(--color-neutral-200)] bg-[var(--panel)] p-5 shadow-sm">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 mb-4">
-            <input
-              type="text"
-              placeholder="Buscar por nombre o marca..."
-              defaultValue={q}
-              onChange={(e) => handleFilterChange({ q: e.target.value })}
-              className="admin-input"
-            />
-            <select
-              value={cat}
-              onChange={(e) => handleFilterChange({ cat: e.target.value })}
-              className="admin-input"
-            >
-              <option value="">Todas las categorías</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+      <div className="rounded-xl border border-[var(--color-neutral-200)] bg-white p-5 shadow-sm">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 mb-4">
+          <input
+            type="text"
+            placeholder="Buscar por nombre o marca..."
+            defaultValue={q}
+            onChange={(e) => handleFilterChange({ q: e.target.value })}
+            className={inputClass}
+          />
+          <select
+            value={cat}
+            onChange={(e) => handleFilterChange({ cat: e.target.value })}
+            className={selectClass}
+          >
+            <option value="">Todas las categorías</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.slug /* ✅ usar slug */}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
         {renderContent()}
       </div>
@@ -336,8 +340,6 @@ export default function ProductsPageClient({
           cancelLabel="Cancel"
         />
       )}
-
     </div>
   );
 }
-

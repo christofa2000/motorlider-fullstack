@@ -26,22 +26,35 @@ export default function LoginForm() {
         router.push("/admin/products");
       } else {
         const { error } = await res.json();
-        toast({ title: "Login failed", description: error, variant: "destructive" });
+        toast({
+          title: "Login failed",
+          description: error,
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("[ADMIN_LOGIN]", error);
-      toast({ title: "An error occurred", description: "Please try again.", variant: "destructive" });
+      toast({
+        title: "An error occurred",
+        description: "Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
+  const inputClass =
+    "mt-1 block w-full rounded-md border border-[var(--color-neutral-200)] bg-white " +
+    "px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 " +
+    "focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)]";
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 text-slate-900">
       <div>
         <label
           htmlFor="password"
-          className="block text-sm font-medium text-gray-700"
+          className="block text-sm font-medium text-slate-800"
         >
           Password
         </label>
@@ -51,9 +64,12 @@ export default function LoginForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)] sm:text-sm"
+          className={inputClass}
+          placeholder="••••••••"
+          autoComplete="current-password"
         />
       </div>
+
       <button
         type="submit"
         disabled={isLoading}

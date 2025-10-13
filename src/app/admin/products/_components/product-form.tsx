@@ -2,16 +2,16 @@
 
 import SafeNextImage from "@/components/ui/SafeNextImage";
 import { useToast } from "@/hooks/useToast";
-import { slugify } from "@/lib/slugify"; // <- default import (más común)
+import { slugify } from "@/lib/slugify"; // ✅ default import correcto
 import {
-    ProductCreateData,
-    productCreateSchema,
+  ProductCreateData,
+  productCreateSchema,
 } from "@/lib/validators/product";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Category, Product } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import type { ChangeEvent } from "react";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import type { z } from "zod";
 
@@ -22,7 +22,7 @@ interface ProductFormProps {
   categories: Category[];
 }
 
-const FALLBACK_IMAGE = "/images/prueba.jpeg"; // usa la que tenés en public/
+const FALLBACK_IMAGE = "/images/prueba.jpeg"; // usa la que tengas en /public
 
 export default function ProductForm({ product, categories }: ProductFormProps) {
   const [isPending, startTransition] = useTransition();
@@ -64,51 +64,107 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
 
   const watchedName = watch("name");
   const watchedImage = watch("image");
+  const watchedCategoryId = watch("categoryId");
 
+  // Autogenerar slug al tipear nombre
   useEffect(() => {
     if (watchedName) {
       setValue("slug", slugify(watchedName), { shouldValidate: true });
     }
   }, [watchedName, setValue]);
 
+  // Si NO hay product y NO hay categoryId pero sí hay categorías, selecciona la primera
+  useEffect(() => {
+    if (!product && !watchedCategoryId && categories.length > 0) {
+      setValue("categoryId", categories[0].id, { shouldValidate: true });
+    }
+  }, [product, watchedCategoryId, categories, setValue]);
+
+  const previewSrc = useMemo(
+    () => (watchedImage && watchedImage.trim() ? watchedImage : FALLBACK_IMAGE),
+    [watchedImage]
+  );
+
   async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validar tipo de archivo
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Error",
+        description: "Solo se permiten archivos de imagen",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar tamaño (máximo 10MB para coincidir con el backend)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "El archivo es demasiado grande. Máximo 10MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setUploading(true);
-    const fd = new FormData();
-    fd.append("file", file);
 
     try {
+      // Crear FormData correctamente
+      const formData = new FormData();
+      formData.append("file", file);
+
+      console.log(
+        `Uploading file: ${file.name}, size: ${file.size} bytes, type: ${file.type}`
+      );
+
       const res = await fetch("/api/upload", {
         method: "POST",
-        body: fd,
+        body: formData,
+        // NO agregar Content-Type manualmente - fetch lo maneja automáticamente para FormData
       });
-      const data = await res.json();
-      setUploading(false);
 
-      if (res.ok && data.ok && data.url) {
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error("Upload failed:", data);
+
+        // Manejar errores específicos de configuración
+        if (
+          res.status === 500 &&
+          data.error?.includes("Variables de entorno")
+        ) {
+          throw new Error(
+            "Error de configuración: faltan variables de entorno de Cloudinary. Contacta al administrador."
+          );
+        }
+
+        throw new Error(data.error || `Error ${res.status}: ${res.statusText}`);
+      }
+
+      if (data.ok && data.url) {
         setValue("image", data.url, { shouldValidate: true });
         toast({
           title: "Imagen subida",
-          description: "Se vinculó al producto.",
+          description: "Se vinculó al producto correctamente.",
         });
+        console.log("Upload successful:", data.url);
       } else {
-        toast({
-          title: "Error",
-          description: data.error ?? "No se pudo subir la imagen",
-          variant: "destructive",
-        });
+        throw new Error(data.error || "No se pudo subir la imagen");
       }
     } catch (error) {
-      setUploading(false);
+      console.error("Error uploading image:", error);
       const message =
         error instanceof Error ? error.message : "No se pudo subir la imagen";
       toast({
-        title: "Error",
+        title: "Error al subir imagen",
         description: message,
         variant: "destructive",
       });
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -124,9 +180,8 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
 
         const payload = {
           ...parsedData,
-          price: Math.round(parsedData.price * 100), // unidad -> cents
-          // si viene vacío, el API también tiene fallback, pero aseguramos acá
-          image: parsedData.image?.trim() || FALLBACK_IMAGE,
+          price: Math.round((parsedData.price ?? 0) * 100), // unidad -> cents
+          // El validador ya maneja el fallback de imagen
         };
 
         const res = await fetch(apiPath, {
@@ -135,53 +190,59 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
           body: JSON.stringify(payload),
         });
 
-        const resData = await res.json();
-
         if (!res.ok) {
-          throw new Error(resData.error || "Something went wrong");
+          const resData = await res.json();
+          throw new Error(
+            resData.error || `HTTP ${res.status}: ${res.statusText}`
+          );
+        }
+
+        const resData = await res.json();
+        if (!resData.ok) {
+          throw new Error(resData.error || "Error del servidor");
         }
 
         toast({
-          title: "Success!",
-          description: `Product ${
-            product ? "updated" : "created"
-          } successfully.`,
+          title: "¡Listo!",
+          description: `Producto ${
+            product ? "actualizado" : "creado"
+          } correctamente.`,
         });
         router.push("/admin/products");
         router.refresh();
       } catch (error) {
+        console.error("Error submitting product:", error);
         const message =
           error instanceof Error
             ? error.message
-            : `Could not ${product ? "update" : "create"} product.`;
-        toast({
-          title: "Error",
-          description: message,
-          variant: "destructive",
-        });
+            : `No se pudo ${product ? "actualizar" : "crear"} el producto.`;
+        toast({ title: "Error", description: message, variant: "destructive" });
       }
     });
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-6 text-slate-900"
+    >
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {/* Name */}
         <div>
           <label
             htmlFor="name"
-            className="admin-label"
+            className="block text-sm font-medium text-slate-700"
           >
             Nombre del producto
           </label>
           <input
             id="name"
             {...register("name")}
-            className="admin-input"
+            className="mt-1 w-full rounded-md border border-[var(--color-neutral-200)] bg-white px-3 py-2 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
             placeholder="Ej: Amortiguador delantero"
           />
           {errors.name && (
-            <p className="mt-1 text-sm text-red-400">{errors.name.message}</p>
+            <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
           )}
         </div>
 
@@ -189,20 +250,18 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
         <div>
           <label
             htmlFor="slug"
-            className="admin-label"
+            className="block text-sm font-medium text-slate-700"
           >
             Slug (URL)
           </label>
-          <div className="flex items-center space-x-2 mt-1">
-            <input
-              id="slug"
-              {...register("slug")}
-              className="admin-input"
-              placeholder="amortiguador-delantero"
-            />
-          </div>
+          <input
+            id="slug"
+            {...register("slug")}
+            className="mt-1 w-full rounded-md border border-[var(--color-neutral-200)] bg-white px-3 py-2 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+            placeholder="amortiguador-delantero"
+          />
           {errors.slug && (
-            <p className="mt-1 text-sm text-red-400">{errors.slug.message}</p>
+            <p className="mt-1 text-sm text-red-600">{errors.slug.message}</p>
           )}
         </div>
 
@@ -210,18 +269,18 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
         <div>
           <label
             htmlFor="brand"
-            className="admin-label"
+            className="block text-sm font-medium text-slate-700"
           >
             Marca
           </label>
           <input
             id="brand"
             {...register("brand")}
-            className="admin-input"
+            className="mt-1 w-full rounded-md border border-[var(--color-neutral-200)] bg-white px-3 py-2 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
             placeholder="Ej: Bosch, NGK, etc."
           />
           {errors.brand && (
-            <p className="mt-1 text-sm text-red-400">{errors.brand.message}</p>
+            <p className="mt-1 text-sm text-red-600">{errors.brand.message}</p>
           )}
         </div>
 
@@ -229,24 +288,32 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
         <div>
           <label
             htmlFor="categoryId"
-            className="admin-label"
+            className="block text-sm font-medium text-slate-700"
           >
             Categoría
           </label>
           <select
             id="categoryId"
             {...register("categoryId")}
-            className="admin-input"
+            className="mt-1 w-full rounded-md border border-[var(--color-neutral-200)] bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
           >
-            <option value="">Selecciona una categoría</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
+            {categories.length === 0 ? (
+              <option value="">
+                (No hay categorías — corré `npm run db:seed`)
               </option>
-            ))}
+            ) : (
+              <>
+                <option value="">Selecciona una categoría</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </>
+            )}
           </select>
           {errors.categoryId && (
-            <p className="mt-1 text-sm text-red-400">
+            <p className="mt-1 text-sm text-red-600">
               {errors.categoryId.message}
             </p>
           )}
@@ -256,7 +323,7 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
         <div>
           <label
             htmlFor="price"
-            className="admin-label"
+            className="block text-sm font-medium text-slate-700"
           >
             Precio (en pesos)
           </label>
@@ -267,18 +334,21 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
               <input
                 id="price"
                 type="number"
-                {...field}
+                inputMode="decimal"
+                value={Number.isFinite(field.value as number) ? field.value : 0}
                 onChange={(e) =>
-                  field.onChange(parseFloat(e.target.value) || 0)
+                  field.onChange(
+                    e.target.value === "" ? 0 : parseFloat(e.target.value) || 0
+                  )
                 }
                 step="0.01"
-                className="admin-input"
+                className="mt-1 w-full rounded-md border border-[var(--color-neutral-200)] bg-white px-3 py-2 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
                 placeholder="0.00"
               />
             )}
           />
           {errors.price && (
-            <p className="mt-1 text-sm text-red-400">{errors.price.message}</p>
+            <p className="mt-1 text-sm text-red-600">{errors.price.message}</p>
           )}
         </div>
 
@@ -286,7 +356,7 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
         <div>
           <label
             htmlFor="stock"
-            className="admin-label"
+            className="block text-sm font-medium text-slate-700"
           >
             Stock disponible
           </label>
@@ -297,26 +367,31 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
               <input
                 id="stock"
                 type="number"
-                {...field}
+                inputMode="numeric"
+                value={Number.isFinite(field.value as number) ? field.value : 0}
                 onChange={(e) =>
-                  field.onChange(parseInt(e.target.value, 10) || 0)
+                  field.onChange(
+                    e.target.value === ""
+                      ? 0
+                      : parseInt(e.target.value, 10) || 0
+                  )
                 }
-                className="admin-input"
+                className="mt-1 w-full rounded-md border border-[var(--color-neutral-200)] bg-white px-3 py-2 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
                 placeholder="0"
               />
             )}
           />
           {errors.stock && (
-            <p className="mt-1 text-sm text-red-400">{errors.stock.message}</p>
+            <p className="mt-1 text-sm text-red-600">{errors.stock.message}</p>
           )}
         </div>
       </div>
 
       {/* Image */}
-      <div className="admin-panel">
+      <div className="rounded-lg border border-[var(--color-neutral-200)] bg-white p-4">
         <label
           htmlFor="image"
-          className="admin-label"
+          className="block text-sm font-medium text-slate-700"
         >
           URL de la imagen
         </label>
@@ -324,38 +399,44 @@ export default function ProductForm({ product, categories }: ProductFormProps) {
           id="image"
           {...register("image")}
           placeholder="/images/products/example.jpg o https://..."
-          className="admin-input"
+          className="mt-1 w-full rounded-md border border-[var(--color-neutral-200)] bg-white px-3 py-2 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
         />
 
-        {/* Vista previa con SafeNextImage */}
+        {/* Vista previa */}
         <div className="mt-4">
           <SafeNextImage
-            src={watchedImage}
+            src={previewSrc}
             alt="Vista previa del producto"
             width={128}
             height={128}
-            className="h-32 w-32 rounded-md object-cover border border-white/10"
+            className="h-32 w-32 rounded-md object-cover border border-[var(--color-neutral-200)]"
             fallbackSrc={FALLBACK_IMAGE}
           />
         </div>
 
-        <label className="admin-label mt-4">
+        <label className="mt-4 block text-sm font-medium text-slate-700">
           Subir imagen desde archivo
         </label>
-        <input 
-          type="file" 
-          accept="image/*" 
+        <input
+          type="file"
+          accept="image/*"
           onChange={handleFileChange}
-          className="admin-input"
+          className="mt-1 w-full rounded-md border border-[var(--color-neutral-200)] bg-white px-3 py-2 text-sm text-slate-900 file:mr-4 file:rounded-md file:border-0 file:bg-[var(--color-secondary)] file:px-3 file:py-2 file:text-[var(--color-contrast)] hover:file:brightness-95 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
         />
-        {uploading && <p className="text-sm text-zinc-400 mt-1">Subiendo...</p>}
+        {uploading && (
+          <p className="mt-1 text-sm text-slate-500">Subiendo...</p>
+        )}
         {errors.image && (
-          <p className="mt-1 text-sm text-red-400">{errors.image.message}</p>
+          <p className="mt-1 text-sm text-red-600">{errors.image.message}</p>
         )}
       </div>
 
-      <div className="flex justify-end space-x-4">
-        <button type="button" onClick={() => router.back()} className="btn btn-secondary">
+      <div className="flex justify-end gap-3">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="btn btn-secondary"
+        >
           Cancelar
         </button>
         <button type="submit" disabled={isPending} className="btn btn-primary">
