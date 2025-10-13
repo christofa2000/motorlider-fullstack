@@ -3,17 +3,30 @@ import { v2 as cloudinary } from "cloudinary";
 import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+// Si tu host lo respeta, evita timeouts cortos en frío:
+export const maxDuration = 20;
 
-// Configuración de Cloudinary - se inicializa solo si las variables están disponibles
+/* ===== CORS helpers (por si tu front y API están en distinto origen) ===== */
+const ORIGIN = process.env.ALLOWED_ORIGIN || "*"; // pon tu dominio si querés
+function cors(res: NextResponse) {
+  res.headers.set("Access-Control-Allow-Origin", ORIGIN);
+  res.headers.set("Access-Control-Allow-Methods", "POST,OPTIONS");
+  res.headers.set("Access-Control-Allow-Headers", "Content-Type,Authorization");
+  return res;
+}
+export async function OPTIONS() {
+  return cors(new NextResponse(null, { status: 204 }));
+}
+/* ======================================================================= */
+
 function initializeCloudinary() {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
   const apiKey = process.env.CLOUDINARY_API_KEY;
   const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
   if (!cloudName || !apiKey || !apiSecret) {
-    console.warn(
-      "Cloudinary not configured - some environment variables are missing"
-    );
+    console.warn("Cloudinary not configured - missing envs");
     return false;
   }
 
@@ -24,50 +37,56 @@ function initializeCloudinary() {
     secure: true,
   });
 
-  console.log(`Cloudinary configured for cloud: ${cloudName}`);
   return true;
+}
+
+export async function GET() {
+  // healthcheck para ver logs en Netlify Functions
+  const ok =
+    !!process.env.CLOUDINARY_CLOUD_NAME &&
+    !!process.env.CLOUDINARY_API_KEY &&
+    !!process.env.CLOUDINARY_API_SECRET;
+
+  return cors(
+    NextResponse.json(
+      { ok, cloud: process.env.CLOUDINARY_CLOUD_NAME ?? null },
+      { status: 200 }
+    )
+  );
 }
 
 export async function POST(req: NextRequest) {
   try {
     // Inicializar Cloudinary y verificar configuración
-    const isCloudinaryConfigured = initializeCloudinary();
-
-    if (!isCloudinaryConfigured) {
-      const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-      const apiKey = process.env.CLOUDINARY_API_KEY;
-      const apiSecret = process.env.CLOUDINARY_API_SECRET;
-
-      const missingVars = [];
-      if (!cloudName) missingVars.push("CLOUDINARY_CLOUD_NAME");
-      if (!apiKey) missingVars.push("CLOUDINARY_API_KEY");
-      if (!apiSecret) missingVars.push("CLOUDINARY_API_SECRET");
-
-      console.error("Missing Cloudinary environment variables:", missingVars);
+    if (!initializeCloudinary()) {
+      const missing: string[] = [];
+      if (!process.env.CLOUDINARY_CLOUD_NAME)
+        missing.push("CLOUDINARY_CLOUD_NAME");
+      if (!process.env.CLOUDINARY_API_KEY) missing.push("CLOUDINARY_API_KEY");
+      if (!process.env.CLOUDINARY_API_SECRET)
+        missing.push("CLOUDINARY_API_SECRET");
 
       const isDev = process.env.NODE_ENV === "development";
-      const errorMessage = isDev
-        ? `Variables de entorno faltantes: ${missingVars.join(
-            ", "
-          )}. Agrega estas variables a tu archivo .env.local`
+      const msg = isDev
+        ? `Variables faltantes: ${missing.join(", ")}`
         : "Error de configuración del servidor. Contacta al administrador.";
 
-      return NextResponse.json(
-        {
-          ok: false,
-          error: errorMessage,
-          ...(isDev && { missingVars }),
-        },
-        { status: 500 }
+      return cors(
+        NextResponse.json({ ok: false, error: msg, missing }, { status: 500 })
       );
     }
 
-    // Verificar que el request tenga FormData
-    const contentType = req.headers.get("content-type");
-    if (!contentType || !contentType.includes("multipart/form-data")) {
-      return NextResponse.json(
-        { ok: false, error: "Content-Type debe ser multipart/form-data" },
-        { status: 400 }
+    // Validar Content-Type
+    const ct = req.headers.get("content-type") || "";
+    if (!ct.includes("multipart/form-data")) {
+      return cors(
+        NextResponse.json(
+          {
+            ok: false,
+            error: "Content-Type inválido (multipart/form-data requerido)",
+          },
+          { status: 415 }
+        )
       );
     }
 
@@ -75,103 +94,90 @@ export async function POST(req: NextRequest) {
     const file = form.get("file");
 
     if (!file || !(file instanceof File)) {
-      return NextResponse.json(
-        { ok: false, error: "No se encontró archivo válido en el request" },
-        { status: 400 }
+      return cors(
+        NextResponse.json(
+          { ok: false, error: "Archivo 'file' requerido" },
+          { status: 400 }
+        )
       );
     }
 
-    // Validar tipo de archivo
     if (!file.type.startsWith("image/")) {
-      return NextResponse.json(
-        { ok: false, error: "Solo se permiten archivos de imagen" },
-        { status: 400 }
+      return cors(
+        NextResponse.json(
+          { ok: false, error: "Solo se permiten imágenes" },
+          { status: 415 }
+        )
       );
     }
 
-    // Validar tamaño (máximo 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json(
-        { ok: false, error: "El archivo es demasiado grande. Máximo 10MB" },
-        { status: 400 }
+      return cors(
+        NextResponse.json(
+          { ok: false, error: "Archivo demasiado grande (máx 10MB)" },
+          { status: 413 }
+        )
       );
     }
 
-    console.log(
-      `Uploading file: ${file.name}, size: ${file.size} bytes, type: ${file.type}`
-    );
+    // Buffer y subida con timeout explícito
+    const buffer = Buffer.from(await file.arrayBuffer());
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    const result: UploadApiResponse = await new Promise<UploadApiResponse>(
-      (resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          {
-            folder: "motorlider/products",
-            resource_type: "auto",
-            quality: "auto",
-            fetch_format: "auto",
-          },
-          (
-            err: UploadApiErrorResponse | undefined,
-            res: UploadApiResponse | undefined
-          ) => {
-            if (err) {
-              console.error("Cloudinary upload error:", err);
-              return reject(new Error(`Cloudinary error: ${err.message}`));
-            }
-            if (!res) {
-              console.error("Cloudinary upload failed: no response");
-              return reject(
-                new Error("Upload failed: no response from Cloudinary")
-              );
-            }
-            return resolve(res);
-          }
-        );
-        stream.end(buffer);
-      }
-    );
-
-    console.log(`Upload successful: ${result.secure_url}`);
-
-    return NextResponse.json({
-      ok: true,
-      url: result.secure_url,
-      publicId: result.public_id,
+    const result: UploadApiResponse = await new Promise((resolve, reject) => {
+      const timeout = setTimeout(
+        () => reject(new Error("UPLOAD_TIMEOUT")),
+        15000
+      );
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: "motorlider/products",
+          resource_type: "auto",
+          quality: "auto",
+          fetch_format: "auto",
+        },
+        (
+          err: UploadApiErrorResponse | undefined,
+          res: UploadApiResponse | undefined
+        ) => {
+          clearTimeout(timeout);
+          if (err) return reject(new Error(`CLOUDINARY:${err.message}`));
+          if (!res) return reject(new Error("CLOUDINARY:NO_RESPONSE"));
+          resolve(res);
+        }
+      );
+      stream.end(buffer);
     });
+
+    return cors(
+      NextResponse.json(
+        { ok: true, url: result.secure_url, publicId: result.public_id },
+        { status: 200 }
+      )
+    );
   } catch (e: unknown) {
-    console.error("Upload error:", e);
-
-    // Manejar errores específicos de Cloudinary
-    if (e instanceof Error) {
-      if (e.message.includes("Cloudinary error")) {
-        return NextResponse.json(
-          {
-            ok: false,
-            error: "Error al subir a Cloudinary. Intenta nuevamente.",
-          },
-          { status: 502 }
-        );
-      }
-      if (e.message.includes("timeout")) {
-        return NextResponse.json(
-          {
-            ok: false,
-            error:
-              "Timeout al subir imagen. Intenta con una imagen más pequeña.",
-          },
+    const msg = e instanceof Error ? e.message : String(e);
+    // Clasificar errores
+    if (msg === "UPLOAD_TIMEOUT") {
+      return cors(
+        NextResponse.json(
+          { ok: false, error: "Timeout subiendo a Cloudinary" },
           { status: 504 }
-        );
-      }
+        )
+      );
     }
-
-    const message =
-      e instanceof Error ? e.message : "Error interno del servidor";
-    return NextResponse.json(
-      { ok: false, error: `Error al subir imagen: ${message}` },
-      { status: 500 }
+    if (msg.startsWith("CLOUDINARY:") || msg.includes("ENOTFOUND")) {
+      return cors(
+        NextResponse.json(
+          { ok: false, error: "Error al subir a Cloudinary" },
+          { status: 502 }
+        )
+      );
+    }
+    return cors(
+      NextResponse.json(
+        { ok: false, error: "Error interno al subir imagen", detail: msg },
+        { status: 500 }
+      )
     );
   }
 }
